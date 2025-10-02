@@ -274,28 +274,29 @@ def parse_qualitas(text: str) -> Dict[str, str]:
     # Prima Total y desglose -> capture both
     prima_total = _extract_amount_after(text, ['IMPORTE TOTAL', 'PRIMA TOTAL'])
     prima_neta = _extract_amount_after(text, ['PRIMA NETA','Prima Neta'])
-    if prima_neta:
+    # Validate: Prima Neta must be > 1000; otherwise ignore as invalid
+    if prima_neta and (_to_number(prima_neta)) > 1000:
         result["Prima Neta"] = f"${prima_neta}"
-    elif prima_total:
+    elif prima_total and (_to_number(prima_total) or 0) > 1000:
         result["Prima Neta"] = f"${prima_total}"
     else:
         result["Prima Neta"] = "N/A"
     if prima_total:
         # Validate: Prima Total must be > 1000; otherwise ignore as invalid
-        if (_to_number(prima_total) or 0) > 1000:
+        if (_to_number(prima_total)) > 1000:
             result["Prima Total"] = f"${prima_total}"
         else:
             result["Prima Total"] = "N/A"
     recargos_extracted = _extract_amount_after(text, ['Recargos'])
     # Validate: Recargos should not exceed 2000
-    if recargos_extracted and (_to_number(recargos_extracted) or 0) <= 2000:
+    if recargos_extracted and (_to_number(recargos_extracted)) <= 2000:
         result["Recargos"] = f"${recargos_extracted}"
     else:
-        result["Recargos"] = "$ 0"
+        result["Recargos"] = "N/A"
     result["Derechos de Póliza"] = f"${_extract_amount_after(text, ['Derechos de Póliza','Derechos de Poliza'])}" if _extract_amount_after(text, ['Derechos de Póliza','Derechos de Poliza']) else "N/A"
     result["IVA"] = f"${_extract_amount_after(text, ['IVA'])}" if _extract_amount_after(text, ['IVA']) else "N/A"
     prima_total_value = _extract_amount_after(text, ['PRIMA TOTAL','IMPORTE TOTAL','TOTAL A PAGAR','TOTAL'])
-    if prima_total_value and (_to_number(prima_total_value) or 0) > 1000:
+    if prima_total_value and (_to_number(prima_total_value)) > 1000:
         result["Prima Total"] = f"${prima_total_value}"
     else:
         result.setdefault("Prima Total", result.get("Prima Total", "N/A"))
