@@ -445,8 +445,8 @@ def parse_atlas(text: str) -> Dict[str, str]:
     result = {"company": "Seguros Atlas"}
     result["vehicle_name"] = extract_vehicle(text)
 
-    # Prima Total y desglose -> same approach as parse_ana
-    prima_total = _extract_amount_after(text, ['PRIMA TOTAL', 'TOTAL'])
+    # Prima Total y desglose -> same approach as parse_ana, avoid generic 'TOTAL' collisions
+    prima_total = _extract_amount_after(text, ['PRIMA TOTAL', 'IMPORTE TOTAL', 'TOTAL A PAGAR'])
     prima_neta = _extract_amount_after(text, ['PRIMA NETA','Prima Neta'])
     if prima_neta:
         result["Prima Neta"] = f"${prima_neta}"
@@ -456,10 +456,10 @@ def parse_atlas(text: str) -> Dict[str, str]:
         result["Prima Neta"] = "N/A"
     if prima_total:
         result["Prima Total"] = f"${prima_total}"
-    result["Recargos"] = f"${_extract_amount_after(text, ['Recargos'])}" if _extract_amount_after(text, ['Recargos']) else "$ 0"
-    result["Derechos de Póliza"] = f"${_extract_amount_after(text, ['Derechos de Póliza','Derechos de Poliza'])}" if _extract_amount_after(text, ['Derechos de Póliza','Derechos de Poliza']) else "N/A"
-    result["IVA"] = f"${_extract_amount_after(text, ['IVA'])}" if _extract_amount_after(text, ['IVA']) else "N/A"
-    prima_total_value = _extract_amount_after(text, ['PRIMA TOTAL','IMPORTE TOTAL','TOTAL A PAGAR','TOTAL'])
+    result["Recargos"] = f"${_extract_amount_after(text, ['RECARGOS'])}" if _extract_amount_after(text, ['RECARGOS']) else "$ 0"
+    result["Derechos de Póliza"] = f"${_extract_amount_after(text, ['DERECHOS DE POLIZA','DERECHOS DE PÓLIZA','DERECHOS'])}" if _extract_amount_after(text, ['DERECHOS DE POLIZA','DERECHOS DE PÓLIZA','DERECHOS']) else "N/A"
+    result["IVA"] = f"${_extract_amount_after(text, ['I.V.A.','IVA'])}" if _extract_amount_after(text, ['I.V.A.','IVA']) else "N/A"
+    prima_total_value = _extract_amount_after(text, ['PRIMA TOTAL','IMPORTE TOTAL','TOTAL A PAGAR'])
     if prima_total_value:
         result["Prima Total"] = f"${prima_total_value}"
     else:
