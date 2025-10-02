@@ -23,7 +23,6 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
 # Master field list for consistent table structure
 MASTER_FIELDS = [
-    'Prima',
     'Forma de Pago',
     'Daños Materiales',
     'Deducible - DM',

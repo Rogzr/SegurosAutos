@@ -179,9 +179,9 @@ def parse_hdi(text: str) -> Dict[str, str]:
     prima_total = _extract_amount_after(text, ['Total a Pagar', 'IMPORTE TOTAL', 'TOTAL A PAGAR'])
     if not prima_total:
         prima_total = _extract_amount_after(text, ['Prima Total', 'PRIMA TOTAL'])
-    result["Prima"] = f"${prima_total}" if prima_total else "N/A"
-    # Prima Neta / Recargos / Derechos / IVA
-    result["Prima Neta"] = f"${_extract_amount_after(text, ['Prima Neta', 'PRIMA NETA'])}" if _extract_amount_after(text, ['Prima Neta','PRIMA NETA']) else "N/A"
+    # Map previous "Prima" into "Prima Neta" per new requirement
+    result["Prima Neta"] = f"${prima_total}" if prima_total else "N/A"
+    # Recargos / Derechos / IVA
     result["Recargos"] = f"${_extract_amount_after(text, ['Recargos'])}" if _extract_amount_after(text, ['Recargos']) else "$ 0"
     result["Derechos de Póliza"] = f"${_extract_amount_after(text, ['Derechos de Póliza','Derechos de Poliza','Derechos'])}" if _extract_amount_after(text, ['Derechos de Póliza','Derechos de Poliza','Derechos']) else "N/A"
     result["IVA"] = f"${_extract_amount_after(text, ['IVA'])}" if _extract_amount_after(text, ['IVA']) else "N/A"
@@ -254,10 +254,9 @@ def parse_qualitas(text: str) -> Dict[str, str]:
     result = {"company": "Qualitas"}
     result["vehicle_name"] = extract_vehicle(text)
     
-    # Prima Total y desglose
+    # Prima Total y desglose -> move to Prima Neta
     prima_total = _extract_amount_after(text, ['IMPORTE TOTAL', 'PRIMA TOTAL'])
-    result["Prima"] = f"${prima_total}" if prima_total else "N/A"
-    result["Prima Neta"] = f"${_extract_amount_after(text, ['PRIMA NETA','Prima Neta'])}" if _extract_amount_after(text, ['PRIMA NETA','Prima Neta']) else "N/A"
+    result["Prima Neta"] = f"${prima_total}" if prima_total else (f"${_extract_amount_after(text, ['PRIMA NETA','Prima Neta'])}" if _extract_amount_after(text, ['PRIMA NETA','Prima Neta']) else "N/A")
     result["Recargos"] = f"${_extract_amount_after(text, ['Recargos'])}" if _extract_amount_after(text, ['Recargos']) else "$ 0"
     result["Derechos de Póliza"] = f"${_extract_amount_after(text, ['Derechos de Póliza','Derechos de Poliza'])}" if _extract_amount_after(text, ['Derechos de Póliza','Derechos de Poliza']) else "N/A"
     result["IVA"] = f"${_extract_amount_after(text, ['IVA'])}" if _extract_amount_after(text, ['IVA']) else "N/A"
@@ -325,10 +324,9 @@ def parse_ana(text: str) -> Dict[str, str]:
     result = {"company": "ANA Seguros"}
     result["vehicle_name"] = extract_vehicle(text)
     
-    # Prima Total y desglose
+    # Prima Total y desglose -> move to Prima Neta
     prima_total = _extract_amount_after(text, ['PRIMA TOTAL', 'TOTAL'])
-    result["Prima"] = f"${prima_total}" if prima_total else "N/A"
-    result["Prima Neta"] = f"${_extract_amount_after(text, ['PRIMA NETA','Prima Neta'])}" if _extract_amount_after(text, ['PRIMA NETA','Prima Neta']) else "N/A"
+    result["Prima Neta"] = f"${prima_total}" if prima_total else (f"${_extract_amount_after(text, ['PRIMA NETA','Prima Neta'])}" if _extract_amount_after(text, ['PRIMA NETA','Prima Neta']) else "N/A")
     result["Recargos"] = f"${_extract_amount_after(text, ['Recargos'])}" if _extract_amount_after(text, ['Recargos']) else "$ 0"
     result["Derechos de Póliza"] = f"${_extract_amount_after(text, ['Derechos de Póliza','Derechos de Poliza'])}" if _extract_amount_after(text, ['Derechos de Póliza','Derechos de Poliza']) else "N/A"
     result["IVA"] = f"${_extract_amount_after(text, ['IVA'])}" if _extract_amount_after(text, ['IVA']) else "N/A"
@@ -397,10 +395,9 @@ def parse_atlas(text: str) -> Dict[str, str]:
     result = {"company": "Seguros Atlas"}
     result["vehicle_name"] = extract_vehicle(text)
     
-    # Prima Total y desglose
+    # Prima Total y desglose -> move to Prima Neta
     prima_total = _extract_amount_after(text, ['Prima Total','PRIMA TOTAL','TOTAL'])
-    result["Prima"] = f"${prima_total}" if prima_total else "N/A"
-    result["Prima Neta"] = f"${_extract_amount_after(text, ['PRIMA NETA','Prima Neta'])}" if _extract_amount_after(text, ['PRIMA NETA','Prima Neta']) else "N/A"
+    result["Prima Neta"] = f"${prima_total}" if prima_total else (f"${_extract_amount_after(text, ['PRIMA NETA','Prima Neta'])}" if _extract_amount_after(text, ['PRIMA NETA','Prima Neta']) else "N/A")
     result["Recargos"] = f"${_extract_amount_after(text, ['Recargos'])}" if _extract_amount_after(text, ['Recargos']) else "$ 0"
     result["Derechos de Póliza"] = f"${_extract_amount_after(text, ['Derechos de Póliza','Derechos de Poliza'])}" if _extract_amount_after(text, ['Derechos de Póliza','Derechos de Poliza']) else "N/A"
     result["IVA"] = f"${_extract_amount_after(text, ['IVA'])}" if _extract_amount_after(text, ['IVA']) else "N/A"
