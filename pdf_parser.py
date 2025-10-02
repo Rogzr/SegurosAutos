@@ -429,7 +429,8 @@ def parse_atlas(text: str) -> Dict[str, str]:
     
     # Prima Total y desglose -> capture both
     # Atlas PDFs sometimes show amounts in tables; use robust anchors
-    prima_total = _extract_amount_after(text, ['Prima Total','IMPORTE TOTAL','TOTAL A PAGAR','TOTAL'])
+    # Only extract prima_total once, and use it for both Prima Neta (as fallback) and Prima Total.
+    prima_total = _extract_amount_after(text, ['IMPORTE TOTAL','PRIMA TOTAL','TOTAL A PAGAR'])
     prima_neta = _extract_amount_after(text, ['PRIMA NETA','Prima Neta'])
     if prima_neta:
         result["Prima Neta"] = f"${prima_neta}"
@@ -439,14 +440,14 @@ def parse_atlas(text: str) -> Dict[str, str]:
         result["Prima Neta"] = "N/A"
     if prima_total:
         result["Prima Total"] = f"${prima_total}"
-    result["Recargos"] = f"${_extract_amount_after(text, ['Recargos'])}" if _extract_amount_after(text, ['Recargos']) else "$ 0"
-    result["Derechos de Póliza"] = f"${_extract_amount_after(text, ['Derechos de Póliza','Derechos de Poliza'])}" if _extract_amount_after(text, ['Derechos de Póliza','Derechos de Poliza']) else "N/A"
-    result["IVA"] = f"${_extract_amount_after(text, ['IVA'])}" if _extract_amount_after(text, ['IVA']) else "N/A"
-    prima_total_value = _extract_amount_after(text, ['PRIMA TOTAL','IMPORTE TOTAL','TOTAL A PAGAR','TOTAL'])
-    if prima_total_value:
-        result["Prima Total"] = f"${prima_total_value}"
     else:
-        result.setdefault("Prima Total", "N/A")
+        result["Prima Total"] = "N/A"
+    recargos_val = _extract_amount_after(text, ['RECARGOS','RECARGO','TASA FIN P.F.','TASA FIN'], lookahead_chars=60)
+    result["Recargos"] = f"${recargos_val}" if recargos_val else "$ 0"
+    derechos_val = _extract_amount_after(text, ['GTOS. EXPEDICION POL.','GASTOS EXPEDICION POL','DERECHOS DE PÓLIZA','DERECHOS DE POLIZA','DERECHOS'], lookahead_chars=60)
+    result["Derechos de Póliza"] = f"${derechos_val}" if derechos_val else "N/A"
+    iva_val = _extract_amount_after(text, ['I.V.A.','IVA'], lookahead_chars=60)
+    result["IVA"] = f"${iva_val}" if iva_val else "N/A"
     
     # Forma de Pago
     result["Forma de Pago"] = "CONTADO"

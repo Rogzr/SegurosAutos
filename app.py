@@ -323,12 +323,14 @@ def export_pdf_with_data(data_json):
                 color: #1f2c36;
                 font-weight: bold;
             }
-            /* Coverage column cells: same style as header */
+            /* Coverage column cells */
             td.field-name {
                 background: #0b4a6a;
                 color: #fff;
                 font-weight: 700;
             }
+            /* Brand highlight for summary rows in PDF as well */
+            td.field-value.summary { color:#fff; font-weight:700; text-align:center; }
             thead th:first-child { width: 22%; }
             .logo {
                 max-width: 150px;

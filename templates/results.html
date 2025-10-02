@@ -59,7 +59,7 @@
                                 <tr>
                                     <th class="coverage-header" style="width:22%">Coberturas</th>
                                     {% for item in data %}
-                                        <th class="company-header-cell" style="background:#f5f7fa; color:#1f2c36; text-align:center;">
+                                        <th class="company-header-cell" style="text-align:center; {% if not is_export and header_colors %}background: {{ header_colors[loop.index0] }}; color:#fff;{% else %}background:#f5f7fa; color:#1f2c36;{% endif %}">
                                             {% if is_export %}
                                                 <div class="company-header-inner">
                                                     {% if company_logos and company_logos[loop.index0] %}
@@ -81,7 +81,7 @@
                                         {% for item in data %}
                                             <td class="field-value{% if is_summary_row %} summary{% endif %}{% if not is_export %} editable{% endif %}"
                                                 {% if not is_export %}contenteditable="true" data-field="{{ field }}" data-company="{{ loop.index0 }}"{% endif %}
-                                                {% if not is_export and header_colors and is_summary_row %}
+                                                {% if header_colors and is_summary_row %}
                                                     style="background: {{ header_colors[loop.index0] }}; color:#fff; font-weight:700; text-align:center;"
                                                 {% endif %}
                                             >{{ item.get(field, 'N/A') }}</td>
@@ -122,7 +122,7 @@
             {% endif %}
         </main>
         
-        <footer>
+        <footer style="text-align: center;">
             <p>&copy; 2025 Strategos Diseño Patrimonial</p>
         </footer>
     </div>
