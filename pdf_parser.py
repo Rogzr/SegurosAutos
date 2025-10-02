@@ -266,29 +266,28 @@ def parse_hdi(text: str) -> Dict[str, str]:
         result["Robo Total"] = "N/A"
     
     # Responsabilidad Civil
-    rc_match = re.search(r'Responsabilidad Civil (Límite Único y Combinado)[:\s]*\$?([0-9,]+\.?\d*)', text, re.IGNORECASE)
+    rc_match = re.search(r'Responsabilidad Civil (Límite Único y Combinado)[:\s]*([0-9,]+\.?\d*)', text, re.IGNORECASE)
     result["Responsabilidad Civil"] = f"${rc_match.group(1)}" if rc_match else "N/A"
     
     # Gastos Medicos Ocupantes
-    gmo_match = re.search(r'Gastos Médicos Ocupantes  (Límite Único Combinado)[:\s]*\$?([0-9,]+\.?\d*)', text, re.IGNORECASE)
+    gmo_match = re.search(r'Gastos Médicos Ocupantes  (Límite Único Combinado)[:\s]*([0-9,]+\.?\d*)', text, re.IGNORECASE)
     result["Gastos Medicos Ocupantes"] = f"${gmo_match.group(1)}" if gmo_match else "N/A"
     
     # Asistencia Legal
-    al_match = re.search(r'Asistencia Jurídica[:\s]*\$?([0-9,]+\.?\d*)', text, re.IGNORECASE)
-    result["Asistencia Legal"] = f"${al_match.group(1)}" if al_match else "N/A"
+    al_match = re.search(r'Asistencia Jurídica[:\s]*(Amparada|No Amparada)', text, re.IGNORECASE)
+    result["Asistencia Legal"] = f"{al_match.group(1)}" if al_match else "N/A"
     
     # Asistencia Viajes
-    av_match = re.search(r'Asistencia en viajes[:\s]*\$?([0-9,]+\.?\d*)', text, re.IGNORECASE)
-    result["Asistencia Viajes"] = f"${av_match.group(1)}" if av_match else "N/A"
+    av_match = re.search(r'Asistencia en viajes[:\s]*(Amparada|No Amparada)', text, re.IGNORECASE)
+    result["Asistencia Viajes"] = f"{av_match.group(1)}" if av_match else "N/A"
     
     # Accidente al conductor
     ac_match = re.search(r'Accidentes Automovilísticos al Conductor[:\s]*\$?([0-9,]+\.?\d*)', text, re.IGNORECASE)
     result["Accidente al conductor"] = f"${ac_match.group(1)}" if ac_match else "N/A"
     
     # Responsabilidad civil catastrofica
-    rcc_match = re.search(r'Responsabilidad Civil en Exceso por Muerte de Personas[:\s]*\$?([0-9,]+\.?\d*)', text, re.IGNORECASE)
-    result["Responsabilidad civil catastrofica"] = f"${rcc_match.group(1)}" if rcc_match else "N/A"
-    
+    rcc_match = re.search(r'Responsabilidad Civil en Exceso por Muerte de Personas[:\s]*([0-9,]+\.?\d*)', text, re.IGNORECASE)
+    result["Responsabilidad civil catastrofica"] = rcc_match.group(1) if rcc_match else "N/A"
     # Desbielamiento por agua al motor: Not present in HDI
     result["Desbielamiento por agua al motor"] = "N/A"
     
@@ -360,7 +359,8 @@ def parse_qualitas(text: str) -> Dict[str, str]:
     result["Accidente al conductor"] = f"${ac_match.group(1)}" if ac_match else "N/A"
     
     # Responsabilidad civil catastrofica
-    rcc_match = re.search(r'RC Complementaria Personas[:\s]*\$?([0-9,]+\.?\d*)', text, re.IGNORECASE)
+    # Match "RC Complementaria Personas" followed by any non-digit, then a $ and the first amount (e.g. $ 2,000,000.00)
+    rcc_match = re.search(r'RC Complementaria Personas[^\d$]*\$?\s*([0-9]{1,3}(?:,[0-9]{3})*(?:\.\d{2})?)', text, re.IGNORECASE)
     result["Responsabilidad civil catastrofica"] = f"${rcc_match.group(1)}" if rcc_match else "N/A"
     
     # Desbielamiento por agua al motor: Not present in Qualitas
