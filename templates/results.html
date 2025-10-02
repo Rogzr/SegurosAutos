@@ -16,6 +16,17 @@
         </header>
         
         <main>
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom: 12px;">
+                <div style="font-weight:600; color:#0b4a6a;">
+                    Vehículo:
+                    {% if not is_export %}
+                        <input type="text" name="vehicle_name_input" placeholder="Nombre del vehículo" value="{{ vehicle_name or '' }}" style="padding:6px 10px; border:1px solid #cfd8dc; border-radius:6px; min-width:260px;"/>
+                    {% else %}
+                        <span>{{ vehicle_name or '—' }}</span>
+                    {% endif %}
+                </div>
+                <div style="color:#4a5961;">Fecha: {{ today_str or '' }}</div>
+            </div>
             {% if error %}
                 <div class="error-message">
                     <p>{{ error }}</p>
@@ -93,6 +104,10 @@
     <script>
         // Local working copy of parsed data
         const data = {{ data | tojson }};
+        const meta = {
+            vehicle_name: document.querySelector('[name="vehicle_name_input"]')?.value || '',
+            date: '{{ today_str or "" }}'
+        };
 
         // Normalize cell edits into data object before export
         function syncEditsIntoData() {
@@ -117,7 +132,8 @@
             syncEditsIntoData();
 
             // Encode data as base64 JSON
-            const jsonData = JSON.stringify(data);
+            const payload = { data, meta };
+            const jsonData = JSON.stringify(payload);
             const encodedData = btoa(jsonData);
             
             // Create export URL

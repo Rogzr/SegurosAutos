@@ -7,6 +7,7 @@ and generate a comparison table that can be exported as PDF.
 import os
 import io
 from flask import Flask, render_template, request, send_file, url_for
+from datetime import datetime
 from pdf_parser import parse_pdf
 
 # WeasyPrint availability will be checked at runtime
@@ -106,7 +107,9 @@ def process_files():
     return render_template('results.html', 
                          data=parsed_data, 
                          fields=MASTER_FIELDS,
-                         errors=errors)
+                         errors=errors,
+                         today_str=datetime.now().strftime('%d/%m/%Y'),
+                         vehicle_name='')
 
 @app.route('/export')
 def export_pdf():
@@ -148,7 +151,16 @@ def export_pdf_with_data(data_json):
     try:
         # Decode the base64 encoded JSON data
         decoded_data = base64.b64decode(data_json).decode('utf-8')
-        parsed_data = json.loads(decoded_data)
+        payload = json.loads(decoded_data)
+        # Support both legacy (list) and new {data, meta}
+        if isinstance(payload, dict) and 'data' in payload:
+            parsed_data = payload.get('data') or []
+            vehicle_name = (payload.get('meta') or {}).get('vehicle_name', '')
+            date_str = (payload.get('meta') or {}).get('date', datetime.now().strftime('%d/%m/%Y'))
+        else:
+            parsed_data = payload
+            vehicle_name = ''
+            date_str = datetime.now().strftime('%d/%m/%Y')
         
         # Sort data alphabetically by company name
         parsed_data.sort(key=lambda x: x.get('company', ''))
@@ -184,7 +196,9 @@ def export_pdf_with_data(data_json):
                                      fields=MASTER_FIELDS,
                                      is_export=True,
                                      logo_url=strategos_logo,
-                                     company_logos=company_logos)
+                                     company_logos=company_logos,
+                                     today_str=date_str,
+                                     vehicle_name=vehicle_name)
         
         # Configure fonts for WeasyPrint
         font_config = FontConfiguration()
@@ -236,53 +250,6 @@ def export_pdf_with_data(data_json):
         
     except Exception as e:
         return f"Error generating PDF: {str(e)}", 500
-
-
-@app.route('/export-preview/<path:data_json>')
-def export_preview_html(data_json):
-    """
-    Render the exact HTML that would be converted to PDF.
-    Useful for local review without WeasyPrint.
-    """
-    import json
-    import base64
-
-    try:
-        decoded_data = base64.b64decode(data_json).decode('utf-8')
-        parsed_data = json.loads(decoded_data)
-
-        parsed_data.sort(key=lambda x: x.get('company', ''))
-
-        strategos_logo = url_for('static', filename='strategos_logo.jpg', _external=True)
-        logo_map = {
-            'ANA': url_for('static', filename='ana_logo.png', _external=True),
-            'ANA SEGUROS': url_for('static', filename='ana_logo.png', _external=True),
-            'SEGUR0S ATLAS': url_for('static', filename='atlas_logo.png', _external=True),
-            'SEGUROS ATLAS': url_for('static', filename='atlas_logo.png', _external=True),
-            'HDI': url_for('static', filename='hdi_logo.png', _external=True),
-            'HDI SEGUROS': url_for('static', filename='hdi_logo.png', _external=True),
-            'QUALITAS': url_for('static', filename='qualitas_logo.png', _external=True),
-            'QUÁLITAS': url_for('static', filename='qualitas_logo.png', _external=True),
-        }
-        company_logos = []
-        for item in parsed_data:
-            name = (item.get('company') or '').upper()
-            logo = None
-            for key, val in logo_map.items():
-                if key in name:
-                    logo = val
-                    break
-            company_logos.append(logo)
-
-        # Render the same template with export styles. Browser can File > Print to PDF.
-        return render_template('results.html',
-                               data=parsed_data,
-                               fields=MASTER_FIELDS,
-                               is_export=True,
-                               logo_url=strategos_logo,
-                               company_logos=company_logos)
-    except Exception as e:
-        return f"Error generating preview: {str(e)}", 500
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
