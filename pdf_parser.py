@@ -11,6 +11,59 @@ import fitz  # PyMuPDF
 import re
 from typing import Dict, Optional, List
 
+def load_brands() -> List[str]:
+    """Load brands from brands.json. Returns empty list if not present."""
+    import json, os
+    try:
+        path = os.path.join(os.path.dirname(__file__), 'brands.json')
+        with open(path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+            if isinstance(data, list) and data:
+                return [str(x).upper() for x in data]
+    except Exception:
+        pass
+    return []
+
+BRANDS = load_brands()
+
+def extract_vehicle(text: str) -> str:
+    """Best-effort vehicle descriptor extraction from PDF text."""
+    upper = text.upper().replace('\n', ' ')
+    patterns: List[str] = []
+    if BRANDS:
+        brands_pattern = r'(?:' + '|'.join([b.replace('-', r'\-') for b in BRANDS]) + r')'
+        patterns.append(rf'{brands_pattern}\s+[A-Z0-9][A-Z0-9\- ]{{2,60}}')
+    # Generic fallbacks that don't depend on brand list
+    patterns.append(r'DESCRIPCION DEL VEHICULO ASEGURADO\s+([A-Z0-9 ,\-]+)')
+    patterns.append(r'VEH[ÍI]CULO\s*[:]*\s*([A-Z0-9 ,\-]{3,60})')
+    candidate = ''
+    import re
+    for p in patterns:
+        m = re.search(p, upper)
+        if m:
+            candidate = m.group(0) if m.lastindex is None else m.group(1)
+            break
+    if not candidate:
+        return ''
+    # Normalize
+    candidate = candidate.strip()
+    # If starts with VW, expand to VOLKSWAGEN
+    # End of Selection
+    # Remove noisy tokens
+    noise_tokens = [
+        'AUTOMOVILES NACIONALES', 'AUTOMOVILES', 'PARTICULAR', 'NORMAL', 'SERVICIO',
+        'DESCRIPCION DEL VEHICULO ASEGURADO', 'DESC', 'AMPLIA', 'PLAN', 'USO',
+        'L4', 'TSI', 'ABS', 'BA', 'AC', 'AUT', 'AUTO', '5 OCUP', '5P', '5PTAS',
+        '1.4T', '2.0T', 'CVT', 'TIPTRONIC', 'AT', 'MT'
+    ]
+    for t in noise_tokens:
+        candidate = candidate.replace(' ' + t + ' ', ' ')
+        if candidate.endswith(' ' + t):
+            candidate = candidate[:-(len(t)+1)]
+    # Collapse whitespace
+    candidate = ' '.join(candidate.split())
+    return candidate
+
 def parse_pdf(pdf_content: bytes) -> Optional[Dict[str, str]]:
     """
     Main function to parse PDF content and extract insurance data.
@@ -93,6 +146,7 @@ def parse_hdi(text: str) -> Dict[str, str]:
         Dictionary with extracted insurance data
     """
     result = {"company": "HDI Seguros"}
+    result["vehicle_name"] = extract_vehicle(text)
     
     # Prima: Find "Total a Pagar" or "Prima Neta"
     prima_match = re.search(r'Total a Pagar[:\s]*\$?([0-9,]+\.?\d*)', text, re.IGNORECASE)
@@ -161,6 +215,7 @@ def parse_qualitas(text: str) -> Dict[str, str]:
         Dictionary with extracted insurance data
     """
     result = {"company": "Qualitas"}
+    result["vehicle_name"] = extract_vehicle(text)
     
     # Prima: Find "IMPORTE TOTAL"
     prima_match = re.search(r'IMPORTE TOTAL[:\s]*\$?([0-9,]+\.?\d*)', text, re.IGNORECASE)
@@ -223,6 +278,7 @@ def parse_ana(text: str) -> Dict[str, str]:
         Dictionary with extracted insurance data
     """
     result = {"company": "ANA Seguros"}
+    result["vehicle_name"] = extract_vehicle(text)
     
     # Prima: Find "PRIMA TOTAL" or look for total amount
     prima_match = re.search(r'PRIMA TOTAL[:\s]*\$?([0-9,]+\.?\d*)', text, re.IGNORECASE)
@@ -289,6 +345,7 @@ def parse_atlas(text: str) -> Dict[str, str]:
         Dictionary with extracted insurance data
     """
     result = {"company": "Seguros Atlas"}
+    result["vehicle_name"] = extract_vehicle(text)
     
     # Prima: Find in "Prima Total" column of summary table
     prima_match = re.search(r'Prima Total[:\s]*\$?([0-9,]+\.?\d*)', text, re.IGNORECASE)

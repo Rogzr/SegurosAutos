@@ -87,6 +87,7 @@ def process_files():
     parsed_data.sort(key=lambda x: x.get('company', ''))
 
     # Global hard-coded overrides/defaults for highlighted rows
+    detected_vehicle = ''
     for row in parsed_data:
         # Ensure consistent defaults
         row.setdefault('Asistencia Viajes', 'AMPARADA')
@@ -108,13 +109,16 @@ def process_files():
         # Atlas-specific coverage present in the example
         if row.get('company') == 'Seguros Atlas':
             row['Desbielamiento por agua al motor'] = 'AMPARADA'
+        # Capture vehicle name if any parser provided it
+        if not detected_vehicle and row.get('vehicle_name'):
+            detected_vehicle = row.get('vehicle_name')
     
     return render_template('results.html', 
                          data=parsed_data, 
                          fields=MASTER_FIELDS,
                          errors=errors,
                          today_str=datetime.now().strftime('%d/%m/%Y'),
-                         vehicle_name='')
+                         vehicle_name=detected_vehicle)
 
 @app.route('/export')
 def export_pdf():
@@ -183,14 +187,14 @@ def export_pdf_with_data(data_json):
         strategos_logo = url_for('static', filename='strategos_logo.jpg', _external=True)
         # Company logos map (filenames must exist in /static)
         logo_map = {
-            'ANA': url_for('static', filename='ana_logo.png', _external=True),
             'ANA SEGUROS': url_for('static', filename='ana_logo.png', _external=True),
-            'SEGUR0S ATLAS': url_for('static', filename='atlas_logo.png', _external=True),
+            'ANA': url_for('static', filename='ana_logo.png', _external=True),
             'SEGUROS ATLAS': url_for('static', filename='atlas_logo.png', _external=True),
-            'HDI': url_for('static', filename='hdi_logo.png', _external=True),
+            'ATLAS': url_for('static', filename='atlas_logo.png', _external=True),
             'HDI SEGUROS': url_for('static', filename='hdi_logo.png', _external=True),
-            'QUALITAS': url_for('static', filename='qualitas_logo.png', _external=True),
+            'HDI': url_for('static', filename='hdi_logo.png', _external=True),
             'QUÁLITAS': url_for('static', filename='qualitas_logo.png', _external=True),
+            'QUALITAS': url_for('static', filename='qualitas_logo.png', _external=True),
         }
         # Build list aligned with data order
         company_logos = []
@@ -224,26 +228,32 @@ def export_pdf_with_data(data_json):
         pdf_css = CSS(string='''
             @page {
                 size: A4 landscape;
-                margin: 1cm;
+                margin: 12mm;
             }
             body {
                 font-family: Arial, sans-serif;
-                font-size: 10px;
+                font-size: 11px;
+                color: #1f2c36;
             }
             table {
                 width: 100%;
                 border-collapse: collapse;
-                margin-top: 20px;
+                margin-top: 10px;
+                table-layout: fixed;
             }
             th, td {
-                border: 1px solid #333;
-                padding: 8px;
+                border: 1px solid #cfd8dc;
+                padding: 8px 10px;
                 text-align: left;
+                vertical-align: middle;
+                word-wrap: break-word;
             }
             th {
-                background-color: #f0f0f0;
+                background: #0b4a6a;
+                color: #fff;
                 font-weight: bold;
             }
+            thead th:first-child { width: 22%; }
             .logo {
                 max-width: 150px;
                 max-height: 50px;
@@ -251,6 +261,16 @@ def export_pdf_with_data(data_json):
             .export-button {
                 display: none;
             }
+            .meta {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin: 6px 0 8px 0;
+                color: #4a5961;
+            }
+            .meta .vehiculo { font-weight: 600; color: #0b4a6a; }
+            .company-header { display:flex; align-items:center; gap:8px; justify-content:center; }
+            .company-header img { height: 18px; object-fit: contain; }
         ''', font_config=font_config)
         
         HTML(string=html_content).write_pdf(pdf_buffer, stylesheets=[pdf_css], font_config=font_config)

@@ -11,22 +11,29 @@
         <header>
             <h1>Comparación de Seguros de Auto</h1>
             {% if is_export %}
-                <img src="{{ logo_url }}" alt="Logo" class="logo">
+                <div class="meta">
+                    <div>
+                        <div>Logo</div>
+                        <img src="{{ logo_url }}" alt="Logo" class="logo">
+                    </div>
+                    <div class="vehiculo">Vehículo: {{ vehicle_name or '—' }}</div>
+                    <div>Fecha: {{ today_str or '' }}</div>
+                </div>
+            {% else %}
+                <img src="{{ logo_url }}" alt="Logo" class="logo" style="display:none;">
             {% endif %}
         </header>
         
         <main>
+            {% if not is_export %}
             <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom: 12px;">
                 <div style="font-weight:600; color:#0b4a6a;">
                     Vehículo:
-                    {% if not is_export %}
-                        <input type="text" name="vehicle_name_input" placeholder="Nombre del vehículo" value="{{ vehicle_name or '' }}" style="padding:6px 10px; border:1px solid #cfd8dc; border-radius:6px; min-width:260px;"/>
-                    {% else %}
-                        <span>{{ vehicle_name or '—' }}</span>
-                    {% endif %}
+                    <input type="text" name="vehicle_name_input" placeholder="Nombre del vehículo" value="{{ vehicle_name or '' }}" style="padding:6px 10px; border:1px solid #cfd8dc; border-radius:6px; min-width:260px;"/>
                 </div>
                 <div style="color:#4a5961;">Fecha: {{ today_str or '' }}</div>
             </div>
+            {% endif %}
             {% if error %}
                 <div class="error-message">
                     <p>{{ error }}</p>
@@ -42,9 +49,9 @@
                                     <th class="coverage-header">Coberturas</th>
                                     {% for item in data %}
                                         <th class="company-header">
-                                            <div style="display:flex; align-items:center; gap:8px; justify-content:center;">
+                                            <div class="company-header">
                                                 {% if is_export and company_logos and company_logos[loop.index0] %}
-                                                    <img src="{{ company_logos[loop.index0] }}" alt="logo" style="height:22px; object-fit:contain;" />
+                                                    <img src="{{ company_logos[loop.index0] }}" alt="logo" />
                                                 {% endif %}
                                                 <span>{{ item.company }}</span>
                                             </div>
@@ -57,7 +64,7 @@
                                     <tr>
                                         <td class="field-name">{{ field }}</td>
                                         {% for item in data %}
-                                            <td class="field-value" {% if not is_export %}contenteditable="true" data-field="{{ field }}" data-company="{{ loop.index0 }}" class="field-value editable"{% endif %}>{{ item.get(field, 'N/A') }}</td>
+                                            <td class="field-value{% if not is_export %} editable{% endif %}" {% if not is_export %}contenteditable="true" data-field="{{ field }}" data-company="{{ loop.index0 }}"{% endif %}>{{ item.get(field, 'N/A') }}</td>
                                         {% endfor %}
                                     </tr>
                                 {% endfor %}
