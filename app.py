@@ -118,12 +118,39 @@ def process_files():
         if not detected_vehicle and row.get('vehicle_name'):
             detected_vehicle = row.get('vehicle_name')
     
+    # Build header colors for non-export view (used to color summary rows)
+    header_colors: list[str] = []
+    color_map = {
+        'ANA': '#E60012',
+        'ANA SEGUROS': '#E60012',
+        'HDI': '#00843D',
+        'HDI SEGUROS': '#00843D',
+        'QUALITAS': '#6F6F84',
+        'QUÁLITAS': '#6F6F84',
+        'SEGUROS ATLAS': '#D22630',
+        'ATLAS': '#D22630'
+    }
+    for item in parsed_data:
+        name = (item.get('company') or '').upper()
+        color_val = '#0b4a6a'
+        for key, c in color_map.items():
+            if key in name:
+                color_val = c
+                break
+        header_colors.append(color_val)
+
+    remaining = 78.0
+    num_cols = max(len(parsed_data), 1)
+    company_col_width = f"{remaining/num_cols:.2f}%"
+
     return render_template('results.html', 
                          data=parsed_data, 
                          fields=MASTER_FIELDS,
                          errors=errors,
                          today_str=datetime.now().strftime('%d/%m/%Y'),
-                         vehicle_name=detected_vehicle)
+                         vehicle_name=detected_vehicle,
+                         header_colors=header_colors,
+                         company_col_width=company_col_width)
 
 @app.route('/export')
 def export_pdf():
