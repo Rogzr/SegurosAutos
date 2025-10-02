@@ -9,18 +9,20 @@
 <body>
     <div class="container">
         <header>
-            <h1>Strategos Diseño Patrimonial</h1>
             {% if is_export %}
                 <div class="meta">
                     <div>
-                        <div>Logo</div>
                         <img src="{{ logo_url }}" alt="Logo" class="logo">
                     </div>
-                    <div class="vehiculo">Vehículo: {{ vehicle_name or '—' }}</div>
-                    <div>Fecha: {{ today_str or '' }}</div>
+                    <div class="vehiculo">Vehículo asegurado: {{ vehicle_name or '—' }}</div>
+                    <div>Fecha de cotización: {{ today_str or '' }}</div>
                 </div>
             {% else %}
-                <img src="{{ logo_url }}" alt="Logo" class="logo" style="display:none;">
+                <div class="meta" style="margin-bottom: 10px;">
+                    <div>
+                        <img src="{{ url_for('static', filename='strategos_footer.png') }}" alt="Logo" class="logo">
+                    </div>
+                </div>
             {% endif %}
         </header>
         
@@ -28,10 +30,10 @@
             {% if not is_export %}
             <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom: 12px;">
                 <div style="font-weight:600; color:#0b4a6a;">
-                    Vehículo:
+                    Vehículo asegurado:
                     <input type="text" name="vehicle_name_input" placeholder="Nombre del vehículo" value="{{ vehicle_name or '' }}" style="padding:6px 10px; border:1px solid #cfd8dc; border-radius:6px; min-width:260px;"/>
                 </div>
-                <div style="color:#4a5961;">Fecha: {{ today_str or '' }}</div>
+                <div style="color:#4a5961;">Fecha de cotización: {{ today_str or '' }}</div>
             </div>
             {% endif %}
             {% if error %}
@@ -46,15 +48,14 @@
                         <table class="comparison-table">
                             <thead>
                                 <tr>
-                                    <th class="coverage-header">Coberturas</th>
+                                    <th class="coverage-header" style="width:22%">Coberturas</th>
                                     {% for item in data %}
-                                        <th class="company-header">
-                                            <div class="company-header">
-                                                {% if is_export and company_logos and company_logos[loop.index0] %}
-                                                    <img src="{{ company_logos[loop.index0] }}" alt="logo" />
-                                                {% endif %}
+                                        <th class="company-header" style="width: {{ company_col_width }}; background: {% if is_export and header_colors %}{{ header_colors[loop.index0] }}{% else %}#0b4a6a{% endif %}; text-align:center;">
+                                            {% if is_export and company_logos and company_logos[loop.index0] %}
+                                                <img src="{{ company_logos[loop.index0] }}" alt="logo" style="height:18px; object-fit:contain; margin: 4px 0;"/>
+                                            {% else %}
                                                 <span>{{ item.company }}</span>
-                                            </div>
+                                            {% endif %}
                                         </th>
                                     {% endfor %}
                                 </tr>

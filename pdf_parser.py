@@ -55,7 +55,7 @@ def extract_vehicle(text: str) -> str:
         'AUTOMOVILES NACIONALES', 'AUTOMOVILES', 'PARTICULAR', 'NORMAL', 'SERVICIO',
         'DESCRIPCION DEL VEHICULO ASEGURADO', 'DESC', 'AMPLIA', 'PLAN', 'USO',
         'L4', 'TSI', 'ABS', 'BA', 'AC', 'AUT', 'AUTO', '5 OCUP', '5P', '5PTAS',
-        '1.4T', '2.0T', 'CVT', 'TIPTRONIC', 'AT', 'MT'
+        '1.4T', '2.0T', 'CVT', 'TIPTRONIC', 'AT', 'MT','SUMA ASEGURADA', 'SUM', 'RIESGOS'
     ]
     for t in noise_tokens:
         candidate = candidate.replace(' ' + t + ' ', ' ')

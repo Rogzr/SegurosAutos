@@ -206,8 +206,19 @@ def export_pdf_with_data(data_json):
             'QUÁLITAS': _data_uri('qualitas_logo.png'),
             'QUALITAS': _data_uri('qualitas_logo.png'),
         }
-        # Build list aligned with data order
+        # Build lists aligned with data order
         company_logos = []
+        header_colors = []
+        color_map = {
+            'ANA': '#E60012',            # ANA red
+            'ANA SEGUROS': '#E60012',
+            'HDI': '#00843D',            # HDI green
+            'HDI SEGUROS': '#00843D',
+            'QUALITAS': '#6F6F84',       # Qualitas gray/purple
+            'QUÁLITAS': '#6F6F84',
+            'SEGUROS ATLAS': '#D22630',  # Atlas red
+            'ATLAS': '#D22630'
+        }
         for item in parsed_data:
             name = (item.get('company') or '').upper()
             # Find a matching key in map
@@ -217,14 +228,28 @@ def export_pdf_with_data(data_json):
                     logo = val
                     break
             company_logos.append(logo)
+            # Color
+            color_val = '#0b4a6a'
+            for key, c in color_map.items():
+                if key in name:
+                    color_val = c
+                    break
+            header_colors.append(color_val)
         
         # Render HTML with export flag
+        # Width for company columns (keep 22% for coverages column)
+        remaining = 78.0
+        num_cols = max(len(parsed_data), 1)
+        company_col_width = f"{remaining/num_cols:.2f}%"
+
         html_content = render_template('results.html',
                                      data=parsed_data,
                                      fields=MASTER_FIELDS,
                                      is_export=True,
                                      logo_url=strategos_logo,
                                      company_logos=company_logos,
+                                     header_colors=header_colors,
+                                     company_col_width=company_col_width,
                                      today_str=date_str,
                                      vehicle_name=vehicle_name)
         
