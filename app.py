@@ -143,13 +143,9 @@ def process_files():
     num_cols = max(len(parsed_data), 1)
     company_col_width = f"{remaining/num_cols:.2f}%"
 
-    # Hide Atlas-specific row if no Atlas quotation uploaded
-    has_atlas = any('ATLAS' in (row.get('company','').upper()) for row in parsed_data)
-    dyn_fields = [f for f in MASTER_FIELDS if has_atlas or f != 'Atlas Cero Plus por PT de DM']
-
     return render_template('results.html', 
                          data=parsed_data, 
-                         fields=dyn_fields,
+                         fields=MASTER_FIELDS,
                          errors=errors,
                          today_str=datetime.now().strftime('%d/%m/%Y'),
                          vehicle_name=detected_vehicle,
@@ -278,13 +274,9 @@ def export_pdf_with_data(data_json):
         num_cols = max(len(parsed_data), 1)
         company_col_width = f"{remaining/num_cols:.2f}%"
 
-        # Hide Atlas-specific row for export as well if no Atlas present
-        has_atlas_export = any('ATLAS' in (row.get('company','').upper()) for row in parsed_data)
-        dyn_fields_export = [f for f in MASTER_FIELDS if has_atlas_export or f != 'Atlas Cero Plus por PT de DM']
-
         html_content = render_template('results.html',
                                      data=parsed_data,
-                                     fields=dyn_fields_export,
+                                     fields=MASTER_FIELDS,
                                      is_export=True,
                                      logo_url=strategos_logo,
                                      company_logos=company_logos,
