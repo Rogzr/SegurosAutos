@@ -46,13 +46,21 @@
                 <div class="results-container">
                     <div class="table-wrapper">
                         <table class="comparison-table">
+                            <colgroup>
+                                <col style="width:22%">
+                                {% for _ in data %}
+                                    <col style="width: {{ company_col_width }}">
+                                {% endfor %}
+                            </colgroup>
                             <thead>
                                 <tr>
                                     <th class="coverage-header" style="width:22%">Coberturas</th>
                                     {% for item in data %}
-                                        <th class="company-header" style="width: {{ company_col_width }}; background: {% if is_export and header_colors %}{{ header_colors[loop.index0] }}{% else %}#0b4a6a{% endif %}; text-align:center;">
-                                            {% if is_export and company_logos and company_logos[loop.index0] %}
-                                                <img src="{{ company_logos[loop.index0] }}" alt="logo" style="height:18px; object-fit:contain; margin: 4px 0;"/>
+                                        <th class="company-header" style="background: {% if is_export and header_colors %}{{ header_colors[loop.index0] }}{% else %}#0b4a6a{% endif %}; text-align:center;">
+                                            {% if is_export %}
+                                                {% if company_logos and company_logos[loop.index0] %}
+                                                    <img src="{{ company_logos[loop.index0] }}" alt="logo" style="height:18px; object-fit:contain; margin: 4px 0;"/>
+                                                {% endif %}
                                             {% else %}
                                                 <span>{{ item.company }}</span>
                                             {% endif %}
