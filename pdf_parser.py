@@ -86,6 +86,11 @@ def _extract_amount_after(text: str, anchors: List[str], lookahead_chars: int = 
             continue
     return None
 
+def _first_amount(text: str) -> Optional[str]:
+    """Return first currency-looking amount in text."""
+    m = re.search(r'\$?\s*([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]{2})?)', text)
+    return m.group(1) if m else None
+
 def parse_pdf(pdf_content: bytes) -> Optional[Dict[str, str]]:
     """
     Main function to parse PDF content and extract insurance data.
@@ -170,15 +175,16 @@ def parse_hdi(text: str) -> Dict[str, str]:
     result = {"company": "HDI Seguros"}
     result["vehicle_name"] = extract_vehicle(text)
     
-    # Prima: Find "Total a Pagar" or "Prima Neta"
-    prima_match = re.search(r'Total a Pagar[:\s]*\$?([0-9,]+\.?\d*)', text, re.IGNORECASE)
-    if not prima_match:
-        # Try "Prima Neta" pattern
-        prima_match = re.search(r'Prima Neta[:\s]*\$?([0-9,]+\.?\d*)', text, re.IGNORECASE)
-    if not prima_match:
-        # Try general "Prima" pattern
-        prima_match = re.search(r'Prima[:\s]*\$?([0-9,]+\.?\d*)', text, re.IGNORECASE)
-    result["Prima"] = f"${prima_match.group(1)}" if prima_match else "N/A"
+    # Prima Total y desglose
+    prima_total = _extract_amount_after(text, ['Total a Pagar', 'IMPORTE TOTAL', 'TOTAL A PAGAR'])
+    if not prima_total:
+        prima_total = _extract_amount_after(text, ['Prima Total', 'PRIMA TOTAL'])
+    result["Prima"] = f"${prima_total}" if prima_total else "N/A"
+    # Prima Neta / Recargos / Derechos / IVA
+    result["Prima Neta"] = f"${_extract_amount_after(text, ['Prima Neta', 'PRIMA NETA'])}" if _extract_amount_after(text, ['Prima Neta','PRIMA NETA']) else "N/A"
+    result["Recargos"] = f"${_extract_amount_after(text, ['Recargos'])}" if _extract_amount_after(text, ['Recargos']) else "$ 0"
+    result["Derechos de Póliza"] = f"${_extract_amount_after(text, ['Derechos de Póliza','Derechos de Poliza','Derechos'])}" if _extract_amount_after(text, ['Derechos de Póliza','Derechos de Poliza','Derechos']) else "N/A"
+    result["IVA"] = f"${_extract_amount_after(text, ['IVA'])}" if _extract_amount_after(text, ['IVA']) else "N/A"
     
     # Forma de Pago: Standardize to "CONTADO"
     result["Forma de Pago"] = "CONTADO"
@@ -248,9 +254,13 @@ def parse_qualitas(text: str) -> Dict[str, str]:
     result = {"company": "Qualitas"}
     result["vehicle_name"] = extract_vehicle(text)
     
-    # Prima: Find "IMPORTE TOTAL"
-    prima_match = re.search(r'IMPORTE TOTAL[:\s]*\$?([0-9,]+\.?\d*)', text, re.IGNORECASE)
-    result["Prima"] = f"${prima_match.group(1)}" if prima_match else "N/A"
+    # Prima Total y desglose
+    prima_total = _extract_amount_after(text, ['IMPORTE TOTAL', 'PRIMA TOTAL'])
+    result["Prima"] = f"${prima_total}" if prima_total else "N/A"
+    result["Prima Neta"] = f"${_extract_amount_after(text, ['PRIMA NETA','Prima Neta'])}" if _extract_amount_after(text, ['PRIMA NETA','Prima Neta']) else "N/A"
+    result["Recargos"] = f"${_extract_amount_after(text, ['Recargos'])}" if _extract_amount_after(text, ['Recargos']) else "$ 0"
+    result["Derechos de Póliza"] = f"${_extract_amount_after(text, ['Derechos de Póliza','Derechos de Poliza'])}" if _extract_amount_after(text, ['Derechos de Póliza','Derechos de Poliza']) else "N/A"
+    result["IVA"] = f"${_extract_amount_after(text, ['IVA'])}" if _extract_amount_after(text, ['IVA']) else "N/A"
     
     # Forma de Pago
     result["Forma de Pago"] = "CONTADO"
@@ -315,12 +325,13 @@ def parse_ana(text: str) -> Dict[str, str]:
     result = {"company": "ANA Seguros"}
     result["vehicle_name"] = extract_vehicle(text)
     
-    # Prima: Find "PRIMA TOTAL" or look for total amount
-    prima_match = re.search(r'PRIMA TOTAL[:\s]*\$?([0-9,]+\.?\d*)', text, re.IGNORECASE)
-    if not prima_match:
-        # Look for the total amount at the end
-        prima_match = re.search(r'TOTAL[:\s]*\$?([0-9,]+\.?\d*)', text, re.IGNORECASE)
-    result["Prima"] = f"${prima_match.group(1)}" if prima_match else "N/A"
+    # Prima Total y desglose
+    prima_total = _extract_amount_after(text, ['PRIMA TOTAL', 'TOTAL'])
+    result["Prima"] = f"${prima_total}" if prima_total else "N/A"
+    result["Prima Neta"] = f"${_extract_amount_after(text, ['PRIMA NETA','Prima Neta'])}" if _extract_amount_after(text, ['PRIMA NETA','Prima Neta']) else "N/A"
+    result["Recargos"] = f"${_extract_amount_after(text, ['Recargos'])}" if _extract_amount_after(text, ['Recargos']) else "$ 0"
+    result["Derechos de Póliza"] = f"${_extract_amount_after(text, ['Derechos de Póliza','Derechos de Poliza'])}" if _extract_amount_after(text, ['Derechos de Póliza','Derechos de Poliza']) else "N/A"
+    result["IVA"] = f"${_extract_amount_after(text, ['IVA'])}" if _extract_amount_after(text, ['IVA']) else "N/A"
     
     # Forma de Pago
     fp_match = re.search(r'FORMA DE PAGO[:\s]*([A-Z\s]+)', text, re.IGNORECASE)
@@ -386,12 +397,13 @@ def parse_atlas(text: str) -> Dict[str, str]:
     result = {"company": "Seguros Atlas"}
     result["vehicle_name"] = extract_vehicle(text)
     
-    # Prima: Find in "Prima Total" column of summary table
-    prima_match = re.search(r'Prima Total[:\s]*\$?([0-9,]+\.?\d*)', text, re.IGNORECASE)
-    if not prima_match:
-        # Look for the total amount pattern
-        prima_match = re.search(r'TOTAL[:\s]*\$?([0-9,]+\.?\d*)', text, re.IGNORECASE)
-    result["Prima"] = f"${prima_match.group(1)}" if prima_match else "N/A"
+    # Prima Total y desglose
+    prima_total = _extract_amount_after(text, ['Prima Total','PRIMA TOTAL','TOTAL'])
+    result["Prima"] = f"${prima_total}" if prima_total else "N/A"
+    result["Prima Neta"] = f"${_extract_amount_after(text, ['PRIMA NETA','Prima Neta'])}" if _extract_amount_after(text, ['PRIMA NETA','Prima Neta']) else "N/A"
+    result["Recargos"] = f"${_extract_amount_after(text, ['Recargos'])}" if _extract_amount_after(text, ['Recargos']) else "$ 0"
+    result["Derechos de Póliza"] = f"${_extract_amount_after(text, ['Derechos de Póliza','Derechos de Poliza'])}" if _extract_amount_after(text, ['Derechos de Póliza','Derechos de Poliza']) else "N/A"
+    result["IVA"] = f"${_extract_amount_after(text, ['IVA'])}" if _extract_amount_after(text, ['IVA']) else "N/A"
     
     # Forma de Pago
     result["Forma de Pago"] = "CONTADO"

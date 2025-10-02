@@ -187,43 +187,55 @@ main {
 .table-wrapper {
     overflow-x: auto;
     margin-bottom: 30px;
-    border-radius: 10px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    border-radius: 14px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+    background: #ffffff;
 }
 
 /* Comparison table */
 .comparison-table {
     width: 100%;
-    border-collapse: collapse;
-    background: white;
-    border-radius: 10px;
-    overflow: hidden;
+    border-collapse: separate;
+    border-spacing: 6px;
+    background: transparent;
 }
 
 .comparison-table th,
 .comparison-table td {
-    padding: 15px 12px;
+    padding: 14px 12px;
     text-align: left;
-    border-bottom: 1px solid #e0e0e0;
+    border: 1px solid #e3e7ea;
+    border-radius: 10px;
+    background: #ffffff;
 }
 
 .comparison-table th {
     background: linear-gradient(135deg, #073b4c, #0b4a6a);
-    color: white;
-    font-weight: 600;
+    color: #ffffff;
+    font-weight: 700;
     font-size: 1rem;
 }
 
 .coverage-header {
-    background: linear-gradient(135deg, #d4a017, #c7900f) !important;
-    font-size: 1.1rem !important;
-    text-align: center !important;
+    background: linear-gradient(135deg, #073b4c, #0b4a6a);
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 1.05rem;
+    text-align: center;
 }
 
-.company-header {
+.company-header { /* legacy */
     text-align: center !important;
     font-size: 0.95rem !important;
 }
+.company-header-cell {
+    color: #ffffff;
+    font-weight: 700;
+    border-radius: 10px;
+    height: 42px;
+}
+.company-header-inner { display:flex; align-items:center; justify-content:center; height:100%; }
+.company-header-inner img { height: 20px; object-fit: contain; }
 
 .comparison-table tbody tr:hover {
     background: #f8f9fa;
@@ -238,17 +250,18 @@ main {
 }
 
 .field-name {
-    font-weight: 600;
-    color: #0b4a6a;
-    background: #e6f0f6 !important;
+    font-weight: 700;
+    color: #ffffff;
+    background: linear-gradient(135deg, #073b4c, #0b4a6a) !important;
     width: 200px;
     min-width: 200px;
 }
 
 .field-value {
     text-align: center;
-    color: #555;
+    color: #334;
     font-size: 0.95rem;
+    background: #f8fafc;
 }
 
 /* Editable cells */

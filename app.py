@@ -36,7 +36,13 @@ MASTER_FIELDS = [
     'Atlas Cero Plus por PT de DM',
     'Accidente al conductor',
     'Responsabilidad civil catastrofica',
-    'Desbielamiento por agua al motor'
+    'Desbielamiento por agua al motor',
+    # Breakdown rows (shown al final de la tabla)
+    'Prima Neta',
+    'Recargos',
+    'Derechos de Póliza',
+    'IVA',
+    'Prima Total'
 ]
 
 @app.route('/')
@@ -272,7 +278,8 @@ def export_pdf_with_data(data_json):
             }
             table {
                 width: 100%;
-                border-collapse: collapse;
+                border-collapse: separate;
+                border-spacing: 3px;
                 margin-top: 10px;
                 table-layout: fixed;
             }
@@ -282,11 +289,19 @@ def export_pdf_with_data(data_json):
                 text-align: left;
                 vertical-align: middle;
                 word-wrap: break-word;
+                background: #ffffff;
+                border-radius: 6px;
             }
             th {
                 background: #0b4a6a;
                 color: #fff;
                 font-weight: bold;
+            }
+            /* Coverage column cells: same style as header */
+            td.field-name {
+                background: #0b4a6a;
+                color: #fff;
+                font-weight: 700;
             }
             thead th:first-child { width: 22%; }
             .logo {
