@@ -91,23 +91,16 @@ def _first_amount(text: str) -> Optional[str]:
     m = re.search(r'\$?\s*([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]{2})?)', text)
     return m.group(1) if m else None
 
-def _find_amount_near_label(text: str, labels: List[str], max_next_lines: int = 2) -> Optional[str]:
-    """Find an amount on the same line as label or in the next few lines (Atlas tables)."""
-    upper_lines = text.upper().splitlines()
-    amount_re = re.compile(r'(-?\$?\s*[0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]{2})?)')
-    label_set = [lbl.upper() for lbl in labels]
-    for i, line in enumerate(upper_lines):
-        if any(lbl in line for lbl in label_set):
-            for j in range(0, max_next_lines + 1):
-                if i + j >= len(upper_lines):
-                    break
-                m = amount_re.search(upper_lines[i + j])
-                if m:
-                    val = m.group(1).replace(' ', '')
-                    if val.startswith('$'):
-                        val = val[1:]
-                    return val
-    return None
+def _to_number(amount: Optional[str]) -> Optional[float]:
+    """Convert amount string like '1,234.56' or '$1,234.56' to float. Returns None if invalid."""
+    if not amount:
+        return None
+    try:
+        s = str(amount).strip().replace('$', '').replace(',', '').replace(' ', '')
+        return float(s)
+    except Exception:
+        return None
+
 
 def parse_pdf(pdf_content: bytes) -> Optional[Dict[str, str]]:
     """
@@ -288,15 +281,24 @@ def parse_qualitas(text: str) -> Dict[str, str]:
     else:
         result["Prima Neta"] = "N/A"
     if prima_total:
-        result["Prima Total"] = f"${prima_total}"
-    result["Recargos"] = f"${_extract_amount_after(text, ['Recargos'])}" if _extract_amount_after(text, ['Recargos']) else "$ 0"
+        # Validate: Prima Total must be > 1000; otherwise ignore as invalid
+        if (_to_number(prima_total) or 0) > 1000:
+            result["Prima Total"] = f"${prima_total}"
+        else:
+            result["Prima Total"] = "N/A"
+    recargos_extracted = _extract_amount_after(text, ['Recargos'])
+    # Validate: Recargos should not exceed 2000
+    if recargos_extracted and (_to_number(recargos_extracted) or 0) <= 2000:
+        result["Recargos"] = f"${recargos_extracted}"
+    else:
+        result["Recargos"] = "$ 0"
     result["Derechos de Póliza"] = f"${_extract_amount_after(text, ['Derechos de Póliza','Derechos de Poliza'])}" if _extract_amount_after(text, ['Derechos de Póliza','Derechos de Poliza']) else "N/A"
     result["IVA"] = f"${_extract_amount_after(text, ['IVA'])}" if _extract_amount_after(text, ['IVA']) else "N/A"
     prima_total_value = _extract_amount_after(text, ['PRIMA TOTAL','IMPORTE TOTAL','TOTAL A PAGAR','TOTAL'])
-    if prima_total_value:
+    if prima_total_value and (_to_number(prima_total_value) or 0) > 1000:
         result["Prima Total"] = f"${prima_total_value}"
     else:
-        result.setdefault("Prima Total", "N/A")
+        result.setdefault("Prima Total", result.get("Prima Total", "N/A"))
     
     # Forma de Pago
     result["Forma de Pago"] = "CONTADO"
