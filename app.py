@@ -356,6 +356,39 @@ def export_pdf_with_data(data_json):
             td.field-value { text-align: center; }
         ''', font_config=font_config)
         
+        # Server-side safety: recompute IVA and Prima Total in case client didn't
+        try:
+            for item in parsed_data:
+                def to_num(s: str) -> float:
+                    import re
+                    if not s:
+                        return 0.0
+                    n = re.sub(r"[^0-9.,-]", "", str(s)).replace(",", "")
+                    try:
+                        return float(n)
+                    except Exception:
+                        return 0.0
+                pn = to_num(item.get('Prima Neta'))
+                rec = to_num(item.get('Recargos'))
+                der = to_num(item.get('Derechos de Póliza'))
+                iva = (pn + rec + der) * 0.16
+                total = pn + rec + der + iva
+                item['IVA'] = f"${iva:,.2f}"
+                item['Prima Total'] = f"${total:,.2f}"
+        except Exception:
+            pass
+
+        html_content = render_template('results.html',
+                                     data=parsed_data,
+                                     fields=MASTER_FIELDS,
+                                     is_export=True,
+                                     logo_url=strategos_logo,
+                                     company_logos=company_logos,
+                                     header_colors=header_colors,
+                                     company_col_width=company_col_width,
+                                     today_str=date_str,
+                                     vehicle_name=vehicle_name)
+
         HTML(string=html_content).write_pdf(pdf_buffer, stylesheets=[pdf_css], font_config=font_config)
         
         pdf_buffer.seek(0)

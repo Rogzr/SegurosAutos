@@ -158,6 +158,28 @@
             // Capture current edits from the table
             syncEditsIntoData();
 
+            // Recompute IVA and Prima Total based on current edits
+            try {
+                const parseMoney = (s) => {
+                    if (!s) return 0;
+                    const n = String(s).replace(/[^0-9.,-]/g, '').replace(/,/g, '');
+                    const v = parseFloat(n);
+                    return isNaN(v) ? 0 : v;
+                };
+                data.forEach((item) => {
+                    const pn = parseMoney(item['Prima Neta']);
+                    const rec = parseMoney(item['Recargos']);
+                    const der = parseMoney(item['Derechos de Póliza']);
+                    const iva = (pn + rec + der) * 0.16;
+                    const total = pn + rec + der + iva;
+                    const fmt = (v) => v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    item['IVA'] = `$${fmt(iva)}`;
+                    item['Prima Total'] = `$${fmt(total)}`;
+                });
+            } catch (e) {
+                console.error('Recompute error:', e);
+            }
+
             // Encode data as base64 JSON
             const payload = { data, meta };
             const jsonData = JSON.stringify(payload);
