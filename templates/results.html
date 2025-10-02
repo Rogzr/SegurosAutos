@@ -72,10 +72,16 @@
                             </thead>
                             <tbody>
                                 {% for field in fields %}
+                                    {% set is_summary_row = field in ['Prima Neta','Prima Total'] %}
                                     <tr>
                                         <td class="field-name">{{ field }}</td>
                                         {% for item in data %}
-                                            <td class="field-value{% if not is_export %} editable{% endif %}" {% if not is_export %}contenteditable="true" data-field="{{ field }}" data-company="{{ loop.index0 }}"{% endif %}>{{ item.get(field, 'N/A') }}</td>
+                                            <td class="field-value{% if is_summary_row %} summary{% endif %}{% if not is_export %} editable{% endif %}"
+                                                {% if not is_export %}contenteditable="true" data-field="{{ field }}" data-company="{{ loop.index0 }}"{% endif %}
+                                                {% if is_export and is_summary_row and header_colors %}
+                                                    style="background: {{ header_colors[loop.index0] }}; color:#fff; font-weight:700; text-align:center;"
+                                                {% endif %}
+                                            >{{ item.get(field, 'N/A') }}</td>
                                         {% endfor %}
                                     </tr>
                                 {% endfor %}

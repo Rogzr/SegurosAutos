@@ -235,7 +235,7 @@ main {
     height: 42px;
 }
 .company-header-inner { display:flex; align-items:center; justify-content:center; height:100%; }
-.company-header-inner img { height: 20px; object-fit: contain; }
+.company-header-inner img { height: 26px; object-fit: contain; filter: none; }
 
 .comparison-table tbody tr:hover {
     background: #f8f9fa;
@@ -263,6 +263,7 @@ main {
     font-size: 0.95rem;
     background: #f8fafc;
 }
+.field-value.summary { color: #ffffff; font-weight: 700; }
 
 /* Editable cells */
 td.editable {

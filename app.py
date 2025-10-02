@@ -268,7 +268,7 @@ def export_pdf_with_data(data_json):
         # Additional CSS for PDF export
         pdf_css = CSS(string='''
             @page {
-                size: A4 landscape;
+                size: A4 portrait;
                 margin: 12mm;
             }
             body {
@@ -320,7 +320,9 @@ def export_pdf_with_data(data_json):
             }
             .meta .vehiculo { font-weight: 600; color: #0b4a6a; }
             .company-header-inner { display:flex; align-items:center; justify-content:center; height: 100%; }
-            .company-header-inner img { height: 18px; object-fit: contain; margin: 4px 0; }
+            .company-header-inner img { height: 24px; object-fit: contain; margin: 4px 0; }
+            /* Center values */
+            td.field-value { text-align: center; }
         ''', font_config=font_config)
         
         HTML(string=html_content).write_pdf(pdf_buffer, stylesheets=[pdf_css], font_config=font_config)
