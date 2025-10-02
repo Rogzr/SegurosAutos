@@ -101,6 +101,51 @@ def _to_number(amount: Optional[str]) -> Optional[float]:
     except Exception:
         return None
 
+def _format_currency(value: float) -> str:
+    """Format float as currency string with thousands and two decimals (no symbol)."""
+    try:
+        return f"{value:,.2f}"
+    except Exception:
+        return str(value)
+
+def _compute_financials(prima_neta_raw: Optional[str], prima_total_raw: Optional[str],
+                        recargos_raw: Optional[str], derechos_raw: Optional[str],
+                        recargos_cap: float = 2000.0, min_total_threshold: float = 1000.0) -> Dict[str, str]:
+    """Standardized computation for Prima Neta, Recargos, Derechos, IVA and Prima Total.
+    - Prefer provided Prima Neta if > threshold; fallback to Prima Total if > threshold.
+    - Recargos above cap are treated as 0.
+    - IVA = (neta + recargos + derechos) * 0.16
+    - Prima Total = neta + recargos + derechos + IVA
+    Returns formatted strings with '$'.
+    """
+    prima_neta_num = _to_number(prima_neta_raw)
+    prima_total_num = _to_number(prima_total_raw)
+    # Choose valid prima_neta
+    chosen_neta = None
+    if prima_neta_num is not None and prima_neta_num > min_total_threshold:
+        chosen_neta = prima_neta_num
+    elif prima_total_num is not None and prima_total_num > min_total_threshold:
+        chosen_neta = prima_total_num
+    else:
+        chosen_neta = 0.0
+    # Recargos
+    rec_num = _to_number(recargos_raw) or 0.0
+    if rec_num > recargos_cap:
+        rec_num = 0.0
+    # Derechos
+    der_num = _to_number(derechos_raw) or 0.0
+    # IVA and total
+    iva_num = (chosen_neta + rec_num + der_num) * 0.16
+    total_num = chosen_neta + rec_num + der_num + iva_num
+    result = {
+        'Prima Neta': f"${_format_currency(chosen_neta)}" if chosen_neta > 0 else 'N/A',
+        'Recargos': f"${_format_currency(rec_num)}" if rec_num > 0 else '$ 0',
+        'Derechos de Póliza': f"${_format_currency(der_num)}" if der_num > 0 else 'N/A',
+        'IVA': f"${_format_currency(iva_num)}",
+        'Prima Total': f"${_format_currency(total_num)}" if total_num > 0 else 'N/A',
+    }
+    return result
+
 
 def parse_pdf(pdf_content: bytes) -> Optional[Dict[str, str]]:
     """
@@ -186,22 +231,13 @@ def parse_hdi(text: str) -> Dict[str, str]:
     result = {"company": "HDI Seguros"}
     result["vehicle_name"] = extract_vehicle(text)
     
-    # Prima Total y desglose
-    prima_total = _extract_amount_after(text, ['Total a Pagar', 'IMPORTE TOTAL', 'TOTAL A PAGAR'])
-    if not prima_total:
-        prima_total = _extract_amount_after(text, ['Prima Total', 'PRIMA TOTAL'])
-    # Map previous "Prima" into "Prima Neta" per new requirement
-    result["Prima Neta"] = f"${prima_total}" if prima_total else "N/A"
-    # Recargos / Derechos / IVA
-    result["Recargos"] = f"${_extract_amount_after(text, ['Recargos'])}" if _extract_amount_after(text, ['Recargos']) else "$ 0"
-    result["Derechos de Póliza"] = f"${_extract_amount_after(text, ['Derechos de Póliza','Derechos de Poliza','Derechos'])}" if _extract_amount_after(text, ['Derechos de Póliza','Derechos de Poliza','Derechos']) else "N/A"
-    result["IVA"] = f"${_extract_amount_after(text, ['IVA'])}" if _extract_amount_after(text, ['IVA']) else "N/A"
-    # Prima Total: try a robust set of anchors in case appears separately
-    prima_total_value = _extract_amount_after(text, ['PRIMA TOTAL','Prima Total','IMPORTE TOTAL','TOTAL A PAGAR','TOTAL'])
-    if prima_total_value:
-        result["Prima Total"] = f"${prima_total_value}"
-    else:
-        result.setdefault("Prima Total", "N/A")
+    # Totals (standardized)
+    prima_total = _extract_amount_after(text, ['Total a Pagar', 'IMPORTE TOTAL', 'TOTAL A PAGAR', 'Prima Total', 'PRIMA TOTAL'])
+    prima_neta = _extract_amount_after(text, ['PRIMA NETA','Prima Neta'])
+    recargos = _extract_amount_after(text, ['Recargos'])
+    derechos = _extract_amount_after(text, ['Derechos de Póliza','Derechos de Poliza','Derechos'])
+    fin = _compute_financials(prima_neta, prima_total, recargos, derechos)
+    result.update(fin)
     
     # Forma de Pago: Standardize to "CONTADO"
     result["Forma de Pago"] = "CONTADO"
@@ -271,35 +307,13 @@ def parse_qualitas(text: str) -> Dict[str, str]:
     result = {"company": "Qualitas"}
     result["vehicle_name"] = extract_vehicle(text)
     
-    # Prima Total y desglose -> capture both
+    # Totals (standardized)
     prima_total = _extract_amount_after(text, ['IMPORTE TOTAL', 'PRIMA TOTAL'])
     prima_neta = _extract_amount_after(text, ['PRIMA NETA','Prima Neta'])
-    # Validate: Prima Neta must be > 1000; otherwise ignore as invalid
-    if prima_neta and (_to_number(prima_neta)) > 1000:
-        result["Prima Neta"] = f"${prima_neta}"
-    elif prima_total and (_to_number(prima_total) or 0) > 1000:
-        result["Prima Neta"] = f"${prima_total}"
-    else:
-        result["Prima Neta"] = "N/A"
-    if prima_total:
-        # Validate: Prima Total must be > 1000; otherwise ignore as invalid
-        if (_to_number(prima_total)) > 1000:
-            result["Prima Total"] = f"${prima_total}"
-        else:
-            result["Prima Total"] = "N/A"
-    recargos_extracted = _extract_amount_after(text, ['Recargos'])
-    # Validate: Recargos should not exceed 2000
-    if recargos_extracted and (_to_number(recargos_extracted)) <= 2000:
-        result["Recargos"] = f"${recargos_extracted}"
-    else:
-        result["Recargos"] = "N/A"
-    result["Derechos de Póliza"] = f"${_extract_amount_after(text, ['Derechos de Póliza','Derechos de Poliza'])}" if _extract_amount_after(text, ['Derechos de Póliza','Derechos de Poliza']) else "N/A"
-    result["IVA"] = f"${_extract_amount_after(text, ['IVA'])}" if _extract_amount_after(text, ['IVA']) else "N/A"
-    prima_total_value = _extract_amount_after(text, ['PRIMA TOTAL','IMPORTE TOTAL','TOTAL A PAGAR','TOTAL'])
-    if prima_total_value and (_to_number(prima_total_value)) > 1000:
-        result["Prima Total"] = f"${prima_total_value}"
-    else:
-        result.setdefault("Prima Total", result.get("Prima Total", "N/A"))
+    recargos = _extract_amount_after(text, ['Recargos'])
+    derechos = _extract_amount_after(text, ['Derechos de Póliza','Derechos de Poliza'])
+    fin = _compute_financials(prima_neta, prima_total, recargos, derechos)
+    result.update(fin)
     
     # Forma de Pago
     result["Forma de Pago"] = "CONTADO"
@@ -364,25 +378,13 @@ def parse_ana(text: str) -> Dict[str, str]:
     result = {"company": "ANA Seguros"}
     result["vehicle_name"] = extract_vehicle(text)
     
-    # Prima Total y desglose -> capture both
+    # Totals (standardized)
     prima_total = _extract_amount_after(text, ['PRIMA TOTAL', 'TOTAL'])
     prima_neta = _extract_amount_after(text, ['PRIMA NETA','Prima Neta'])
-    if prima_neta:
-        result["Prima Neta"] = f"${prima_neta}"
-    elif prima_total:
-        result["Prima Neta"] = f"${prima_total}"
-    else:
-        result["Prima Neta"] = "N/A"
-    if prima_total:
-        result["Prima Total"] = f"${prima_total}"
-    result["Recargos"] = f"${_extract_amount_after(text, ['Recargos'])}" if _extract_amount_after(text, ['Recargos']) else "$ 0"
-    result["Derechos de Póliza"] = f"${_extract_amount_after(text, ['Derechos de Póliza','Derechos de Poliza'])}" if _extract_amount_after(text, ['Derechos de Póliza','Derechos de Poliza']) else "N/A"
-    result["IVA"] = f"${_extract_amount_after(text, ['IVA'])}" if _extract_amount_after(text, ['IVA']) else "N/A"
-    prima_total_value = _extract_amount_after(text, ['PRIMA TOTAL','IMPORTE TOTAL','TOTAL A PAGAR','TOTAL'])
-    if prima_total_value:
-        result["Prima Total"] = f"${prima_total_value}"
-    else:
-        result.setdefault("Prima Total", "N/A")
+    recargos = _extract_amount_after(text, ['Recargos'])
+    derechos = _extract_amount_after(text, ['Derechos de Póliza','Derechos de Poliza'])
+    fin = _compute_financials(prima_neta, prima_total, recargos, derechos)
+    result.update(fin)
     
     # Forma de Pago
     fp_match = re.search(r'FORMA DE PAGO[:\s]*([A-Z\s]+)', text, re.IGNORECASE)
@@ -448,25 +450,13 @@ def parse_atlas(text: str) -> Dict[str, str]:
     result = {"company": "Seguros Atlas"}
     result["vehicle_name"] = extract_vehicle(text)
     
-    # Same approach as parse_ana: simple anchors with robust fallbacks
+    # Totals (standardized)
     prima_total = _extract_amount_after(text, ['PRIMA TOTAL', 'TOTAL'])
     prima_neta = _extract_amount_after(text, ['PRIMA NETA','Prima Neta'])
-    if prima_neta:
-        result["Prima Neta"] = f"${prima_neta}"
-    elif prima_total:
-        result["Prima Neta"] = f"${prima_total}"
-    else:
-        result["Prima Neta"] = "N/A"
-    if prima_total:
-        result["Prima Total"] = f"${prima_total}"
-    result["Recargos"] = f"${_extract_amount_after(text, ['Recargos'])}" if _extract_amount_after(text, ['Recargos']) else "$ 0"
-    result["Derechos de Póliza"] = f"${_extract_amount_after(text, ['Derechos de Póliza','Derechos de Poliza'])}" if _extract_amount_after(text, ['Derechos de Póliza','Derechos de Poliza']) else "N/A"
-    result["IVA"] = f"${_extract_amount_after(text, ['IVA'])}" if _extract_amount_after(text, ['IVA']) else "N/A"
-    prima_total_value = _extract_amount_after(text, ['PRIMA TOTAL','IMPORTE TOTAL','TOTAL A PAGAR','TOTAL'])
-    if prima_total_value:
-        result["Prima Total"] = f"${prima_total_value}"
-    else:
-        result.setdefault("Prima Total", "N/A")
+    recargos = _extract_amount_after(text, ['Recargos'])
+    derechos = _extract_amount_after(text, ['Derechos de Póliza','Derechos de Poliza'])
+    fin = _compute_financials(prima_neta, prima_total, recargos, derechos)
+    result.update(fin)
     
     # Forma de Pago (fallback to CONTADO if not found)
     fp_match = re.search(r'FORMA DE PAGO[:\s]*([A-Z\s]+)', text, re.IGNORECASE)
@@ -511,7 +501,7 @@ def parse_atlas(text: str) -> Dict[str, str]:
     result["Accidente al conductor"] = f"${ac_match.group(1)}" if ac_match else "N/A"
     
     # Responsabilidad civil catastrofica
-    rcc_match = re.search(r'RESPONSABILIDAD CIVIL CATASTROFICA POR FALLECIMIENTO[:\s]*\$?([0-9,]+\.?\d*)', text, re.IGNORECASE)
+    rcc_match = re.search(r'RESPONSABILIDAD CIVIL CATASTRÓFICA POR FALLECIMIENTO[:\s]*\$?([0-9,]+\.?\d*)', text, re.IGNORECASE)
     result["Responsabilidad civil catastrofica"] = f"${rcc_match.group(1)}" if rcc_match else "N/A"
     
     # Desbielamiento por agua al motor: Not present in Atlas
