@@ -337,11 +337,14 @@ def parse_qualitas(text: str) -> Dict[str, str]:
         result["Robo Total"] = "N/A"
     
     # Responsabilidad Civil
-    rc_match = re.search(r'Responsabilidad Civil[:\s]*\$?([0-9,]+\.?\d*)', text, re.IGNORECASE)
+    rc_match = re.search(r'Responsabilidad Civil[:\s]*\$?\s*([0-9,]+\.?\d*)', text, re.IGNORECASE)
+    if not rc_match:
+        # Try to match pattern like "Responsabilidad Civil $ 2,000,000.00 POR EVENTO"
+        rc_match = re.search(r'Responsabilidad Civil[^\d$]*\$?\s*([0-9,]+\.?\d*)', text, re.IGNORECASE)
     result["Responsabilidad Civil"] = f"${rc_match.group(1)}" if rc_match else "N/A"
     
     # Gastos Medicos Ocupantes
-    gmo_match = re.search(r'Gastos Medicos Ocupantes[:\s]*\$?([0-9,]+\.?\d*)', text, re.IGNORECASE)
+    gmo_match = re.search(r'Gastos Medicos Ocupantes[:\s]*\$?\s*([0-9,]+\.?\d*)', text, re.IGNORECASE)
     result["Gastos Medicos Ocupantes"] = f"${gmo_match.group(1)}" if gmo_match else "N/A"
     
     # Asistencia Legal
