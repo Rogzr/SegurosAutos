@@ -91,6 +91,24 @@ def _first_amount(text: str) -> Optional[str]:
     m = re.search(r'\$?\s*([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]{2})?)', text)
     return m.group(1) if m else None
 
+def _find_amount_near_label(text: str, labels: List[str], max_next_lines: int = 2) -> Optional[str]:
+    """Find an amount on the same line as label or in the next few lines (Atlas tables)."""
+    upper_lines = text.upper().splitlines()
+    amount_re = re.compile(r'(-?\$?\s*[0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]{2})?)')
+    label_set = [lbl.upper() for lbl in labels]
+    for i, line in enumerate(upper_lines):
+        if any(lbl in line for lbl in label_set):
+            for j in range(0, max_next_lines + 1):
+                if i + j >= len(upper_lines):
+                    break
+                m = amount_re.search(upper_lines[i + j])
+                if m:
+                    val = m.group(1).replace(' ', '')
+                    if val.startswith('$'):
+                        val = val[1:]
+                    return val
+    return None
+
 def parse_pdf(pdf_content: bytes) -> Optional[Dict[str, str]]:
     """
     Main function to parse PDF content and extract insurance data.
@@ -427,11 +445,9 @@ def parse_atlas(text: str) -> Dict[str, str]:
     result = {"company": "Seguros Atlas"}
     result["vehicle_name"] = extract_vehicle(text)
     
-    # Prima Total y desglose -> capture both
-    # Atlas PDFs sometimes show amounts in tables; use robust anchors
-    # Only extract prima_total once, and use it for both Prima Neta (as fallback) and Prima Total.
-    prima_total = _extract_amount_after(text, ['IMPORTE TOTAL','PRIMA TOTAL','TOTAL A PAGAR'])
-    prima_neta = _extract_amount_after(text, ['PRIMA NETA','Prima Neta'])
+    # Totals from summary table: search nearby labels to avoid wrong hits
+    prima_total = _find_amount_near_label(text, ['IMPORTE TOTAL','PRIMA TOTAL','TOTAL A PAGAR'])
+    prima_neta = _find_amount_near_label(text, ['PRIMA NETA'])
     if prima_neta:
         result["Prima Neta"] = f"${prima_neta}"
     elif prima_total:
@@ -442,11 +458,11 @@ def parse_atlas(text: str) -> Dict[str, str]:
         result["Prima Total"] = f"${prima_total}"
     else:
         result["Prima Total"] = "N/A"
-    recargos_val = _extract_amount_after(text, ['RECARGOS','RECARGO','TASA FIN P.F.','TASA FIN'], lookahead_chars=60)
+    recargos_val = _find_amount_near_label(text, ['RECARGOS','RECARGO','TASA FIN P.F.','TASA FIN'])
     result["Recargos"] = f"${recargos_val}" if recargos_val else "$ 0"
-    derechos_val = _extract_amount_after(text, ['GTOS. EXPEDICION POL.','GASTOS EXPEDICION POL','DERECHOS DE PÓLIZA','DERECHOS DE POLIZA','DERECHOS'], lookahead_chars=60)
+    derechos_val = _find_amount_near_label(text, ['GTOS. EXPEDICION POL.','GASTOS EXPEDICION POL','DERECHOS DE PÓLIZA','DERECHOS DE POLIZA','DERECHOS'])
     result["Derechos de Póliza"] = f"${derechos_val}" if derechos_val else "N/A"
-    iva_val = _extract_amount_after(text, ['I.V.A.','IVA'], lookahead_chars=60)
+    iva_val = _find_amount_near_label(text, ['I.V.A.','IVA'])
     result["IVA"] = f"${iva_val}" if iva_val else "N/A"
     
     # Forma de Pago
