@@ -277,13 +277,10 @@ def parse_hdi(text: str) -> Dict[str, str]:
     al_match = re.search(r'Asistencia Jurídica[:\s]*(Amparada|No Amparada)', text, re.IGNORECASE)
     result["Asistencia Legal"] = f"{al_match.group(1)}" if al_match else "N/A"
     
-    # Asistencia Viajes
+    # ASistencia Viajes
     av_match = re.search(r'Asistencia en viajes[:\s]*(Amparada|No Amparada)', text, re.IGNORECASE)
     result["Asistencia Viajes"] = f"{av_match.group(1)}" if av_match else "N/A"
     
-    # Atlas specific coverage
-    result["Atlas Cero Plus por PT de DM"] = "N/A"
-
     # Accidente al conductor
     ac_match = re.search(r'Accidentes Automovilísticos al Conductor[:\s]*\$?([0-9,]+\.?\d*)', text, re.IGNORECASE)
     result["Accidente al conductor"] = f"${ac_match.group(1)}" if ac_match else "N/A"
@@ -357,9 +354,6 @@ def parse_qualitas(text: str) -> Dict[str, str]:
     av_match = re.search(r'Asistencia Vial[:\s]*(Amparada|No Amparada))', text, re.IGNORECASE)
     result["Asistencia Viajes"] = f"${av_match.group(1)}" if av_match else "N/A"
     
-    # Atlas specific coverage
-    result["Atlas Cero Plus por PT de DM"] = "N/A"
-    
     # Accidente al conductor
     ac_match = re.search(r'Muerte del Conductor X AA[:\s]*\$?([0-9,]+\.?\d*)', text, re.IGNORECASE)
     result["Accidente al conductor"] = f"${ac_match.group(1)}" if ac_match else "N/A"
@@ -426,15 +420,12 @@ def parse_ana(text: str) -> Dict[str, str]:
     result["Gastos Medicos Ocupantes"] = f"${gmo_match.group(1)}" if gmo_match else "N/A"
     
     # Asistencia Legal
-    al_match = re.search(r'DEFENSA JURIDICA Y ASIST\. LEGAL[:\s]*(Amparada|No Amparada))', text, re.IGNORECASE)
+    al_match = re.search(r'DEFENSA JURIDICA Y ASIST\. LEGAL[:\s]*\$?([0-9,]+\.?\d*)', text, re.IGNORECASE)
     result["Asistencia Legal"] = f"${al_match.group(1)}" if al_match else "N/A"
     
     # Asistencia Viajes: Derived from "ANA ASISTENCIA"
     result["Asistencia Viajes"] = "AMPARADA"
     
-    # Atlas specific coverage
-    result["Atlas Cero Plus por PT de DM"] = "N/A"
-
     # Accidente al conductor
     ac_match = re.search(r'GASTOS POR MUERTE ACCIDENTAL[:\s]*\$?([0-9,]+\.?\d*)', text, re.IGNORECASE)
     result["Accidente al conductor"] = f"${ac_match.group(1)}" if ac_match else "N/A"
@@ -508,9 +499,6 @@ def parse_atlas(text: str) -> Dict[str, str]:
     av_match = re.search(r'ASISTENCIA EN VIAJES[:\s]*\$?([0-9,]+\.?\d*)', text, re.IGNORECASE)
     result["Asistencia Viajes"] = f"${av_match.group(1)}" if av_match else "N/A"
     
-    # Atlas specific coverage
-    result["Atlas Cero Plus por PT de DM"] = "AMPARADA"
-
     # Accidente al conductor
     ac_match = re.search(r'ACCIDENTE AL CONDUCTOR[:\s]*\$?([0-9,]+\.?\d*)', text, re.IGNORECASE)
     result["Accidente al conductor"] = f"${ac_match.group(1)}" if ac_match else "N/A"
