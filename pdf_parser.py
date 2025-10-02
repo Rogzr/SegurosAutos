@@ -428,7 +428,8 @@ def parse_atlas(text: str) -> Dict[str, str]:
     result["vehicle_name"] = extract_vehicle(text)
     
     # Prima Total y desglose -> capture both
-    prima_total = _extract_amount_after(text, ['Prima Total','PRIMA TOTAL','TOTAL'])
+    # Atlas PDFs sometimes show amounts in tables; use robust anchors
+    prima_total = _extract_amount_after(text, ['Prima Total','IMPORTE TOTAL','TOTAL A PAGAR','TOTAL'])
     prima_neta = _extract_amount_after(text, ['PRIMA NETA','Prima Neta'])
     if prima_neta:
         result["Prima Neta"] = f"${prima_neta}"
@@ -469,11 +470,11 @@ def parse_atlas(text: str) -> Dict[str, str]:
         result["Robo Total"] = "N/A"
     
     # Responsabilidad Civil
-    rc_match = re.search(r'RESPONSABILIDAD CIVIL \(LUC\)[:\s]*\$?([0-9,]+\.?\d*)', text, re.IGNORECASE)
+    rc_match = re.search(r'RESPONSABILIDAD CIVIL\s*(?:\(LUC\))?[:\s]*\$?([0-9,]+\.?\d*)', text, re.IGNORECASE)
     result["Responsabilidad Civil"] = f"${rc_match.group(1)}" if rc_match else "N/A"
     
     # Gastos Medicos Ocupantes
-    gmo_match = re.search(r'GASTOS MEDICOS OCUPANTES \(LUC\)[:\s]*\$?([0-9,]+\.?\d*)', text, re.IGNORECASE)
+    gmo_match = re.search(r'GASTOS MEDICOS OCUPANTES\s*(?:\(LUC\))?[:\s]*\$?([0-9,]+\.?\d*)', text, re.IGNORECASE)
     result["Gastos Medicos Ocupantes"] = f"${gmo_match.group(1)}" if gmo_match else "N/A"
     
     # Asistencia Legal
