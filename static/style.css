@@ -52,6 +52,11 @@ header p {
     max-height: 50px;
     margin-top: 20px;
 }
+.meta { display:flex; align-items:flex-start; gap: 18px; }
+.vehiculo { line-height: 1.2; }
+.vehiculo-label { color:#0b4a6a; font-weight:600; }
+.vehiculo-name { margin-top: 4px; font-weight:700; color:#163d52; }
+.fecha { text-align:right; line-height:1.2; }
 
 /* Main content */
 main {

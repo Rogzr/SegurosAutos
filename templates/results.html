@@ -14,8 +14,11 @@
                     <div>
                         <img src="{{ logo_url }}" alt="Logo" class="logo">
                     </div>
-                    <div class="vehiculo">Vehículo asegurado: {{ vehicle_name or '—' }}</div>
-                    <div>Fecha de cotización: {{ today_str or '' }}</div>
+                    <div class="vehiculo">
+                        <div class="vehiculo-label">Vehículo asegurado:</div>
+                        <div class="vehiculo-name">{{ vehicle_name or '—' }}</div>
+                    </div>
+                    <div class="fecha">Fecha de cotización:<br>{{ today_str or '' }}</div>
                 </div>
             {% else %}
                 <div class="meta" style="margin-bottom: 10px;">

@@ -185,6 +185,12 @@ def parse_hdi(text: str) -> Dict[str, str]:
     result["Recargos"] = f"${_extract_amount_after(text, ['Recargos'])}" if _extract_amount_after(text, ['Recargos']) else "$ 0"
     result["Derechos de Póliza"] = f"${_extract_amount_after(text, ['Derechos de Póliza','Derechos de Poliza','Derechos'])}" if _extract_amount_after(text, ['Derechos de Póliza','Derechos de Poliza','Derechos']) else "N/A"
     result["IVA"] = f"${_extract_amount_after(text, ['IVA'])}" if _extract_amount_after(text, ['IVA']) else "N/A"
+    # Prima Total: try a robust set of anchors in case appears separately
+    prima_total_value = _extract_amount_after(text, ['PRIMA TOTAL','Prima Total','IMPORTE TOTAL','TOTAL A PAGAR','TOTAL'])
+    if prima_total_value:
+        result["Prima Total"] = f"${prima_total_value}"
+    else:
+        result.setdefault("Prima Total", "N/A")
     
     # Forma de Pago: Standardize to "CONTADO"
     result["Forma de Pago"] = "CONTADO"
@@ -260,6 +266,11 @@ def parse_qualitas(text: str) -> Dict[str, str]:
     result["Recargos"] = f"${_extract_amount_after(text, ['Recargos'])}" if _extract_amount_after(text, ['Recargos']) else "$ 0"
     result["Derechos de Póliza"] = f"${_extract_amount_after(text, ['Derechos de Póliza','Derechos de Poliza'])}" if _extract_amount_after(text, ['Derechos de Póliza','Derechos de Poliza']) else "N/A"
     result["IVA"] = f"${_extract_amount_after(text, ['IVA'])}" if _extract_amount_after(text, ['IVA']) else "N/A"
+    prima_total_value = _extract_amount_after(text, ['PRIMA TOTAL','IMPORTE TOTAL','TOTAL A PAGAR','TOTAL'])
+    if prima_total_value:
+        result["Prima Total"] = f"${prima_total_value}"
+    else:
+        result.setdefault("Prima Total", "N/A")
     
     # Forma de Pago
     result["Forma de Pago"] = "CONTADO"
@@ -330,6 +341,11 @@ def parse_ana(text: str) -> Dict[str, str]:
     result["Recargos"] = f"${_extract_amount_after(text, ['Recargos'])}" if _extract_amount_after(text, ['Recargos']) else "$ 0"
     result["Derechos de Póliza"] = f"${_extract_amount_after(text, ['Derechos de Póliza','Derechos de Poliza'])}" if _extract_amount_after(text, ['Derechos de Póliza','Derechos de Poliza']) else "N/A"
     result["IVA"] = f"${_extract_amount_after(text, ['IVA'])}" if _extract_amount_after(text, ['IVA']) else "N/A"
+    prima_total_value = _extract_amount_after(text, ['PRIMA TOTAL','IMPORTE TOTAL','TOTAL A PAGAR','TOTAL'])
+    if prima_total_value:
+        result["Prima Total"] = f"${prima_total_value}"
+    else:
+        result.setdefault("Prima Total", "N/A")
     
     # Forma de Pago
     fp_match = re.search(r'FORMA DE PAGO[:\s]*([A-Z\s]+)', text, re.IGNORECASE)
@@ -401,6 +417,11 @@ def parse_atlas(text: str) -> Dict[str, str]:
     result["Recargos"] = f"${_extract_amount_after(text, ['Recargos'])}" if _extract_amount_after(text, ['Recargos']) else "$ 0"
     result["Derechos de Póliza"] = f"${_extract_amount_after(text, ['Derechos de Póliza','Derechos de Poliza'])}" if _extract_amount_after(text, ['Derechos de Póliza','Derechos de Poliza']) else "N/A"
     result["IVA"] = f"${_extract_amount_after(text, ['IVA'])}" if _extract_amount_after(text, ['IVA']) else "N/A"
+    prima_total_value = _extract_amount_after(text, ['PRIMA TOTAL','IMPORTE TOTAL','TOTAL A PAGAR','TOTAL'])
+    if prima_total_value:
+        result["Prima Total"] = f"${prima_total_value}"
+    else:
+        result.setdefault("Prima Total", "N/A")
     
     # Forma de Pago
     result["Forma de Pago"] = "CONTADO"

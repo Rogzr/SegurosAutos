@@ -313,11 +313,13 @@ def export_pdf_with_data(data_json):
             .meta {
                 display: flex;
                 justify-content: space-between;
-                align-items: center;
-                margin: 6px 0 8px 0;
+                align-items: flex-start;
+                gap: 18px;
+                margin: 6px 0 10px 0;
                 color: #4a5961;
             }
-            .meta .vehiculo { font-weight: 600; color: #0b4a6a; }
+            .meta .vehiculo { font-weight: 600; color: #0b4a6a; line-height: 1.2; }
+            .meta .vehiculo .vehiculo-name { margin-top: 2px; font-weight: 700; color: #163d52; }
             .company-header-inner { display:flex; align-items:center; justify-content:center; height: 100%; }
             .company-header-inner img { height: 24px; object-fit: contain; margin: 4px 0; }
             /* Center values */
