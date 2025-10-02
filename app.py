@@ -183,18 +183,28 @@ def export_pdf_with_data(data_json):
         # Sort data alphabetically by company name
         parsed_data.sort(key=lambda x: x.get('company', ''))
         
-        # Generate external URLs for logos
-        strategos_logo = url_for('static', filename='strategos_logo.jpg', _external=True)
+        # Helper: build data URI for static images so WeasyPrint embeds them reliably
+        import base64, mimetypes
+        def _data_uri(static_filename: str) -> str:
+            file_path = os.path.join(app.root_path, 'static', static_filename)
+            mime = mimetypes.guess_type(file_path)[0] or 'image/png'
+            with open(file_path, 'rb') as f:
+                b64 = base64.b64encode(f.read()).decode('ascii')
+            return f"data:{mime};base64,{b64}"
+
+        # Header logo (requested strategos_footer.png at the top)
+        strategos_logo = _data_uri('strategos_footer.png')
+
         # Company logos map (filenames must exist in /static)
         logo_map = {
-            'ANA SEGUROS': url_for('static', filename='ana_logo.png', _external=True),
-            'ANA': url_for('static', filename='ana_logo.png', _external=True),
-            'SEGUROS ATLAS': url_for('static', filename='atlas_logo.png', _external=True),
-            'ATLAS': url_for('static', filename='atlas_logo.png', _external=True),
-            'HDI SEGUROS': url_for('static', filename='hdi_logo.png', _external=True),
-            'HDI': url_for('static', filename='hdi_logo.png', _external=True),
-            'QUÁLITAS': url_for('static', filename='qualitas_logo.png', _external=True),
-            'QUALITAS': url_for('static', filename='qualitas_logo.png', _external=True),
+            'ANA SEGUROS': _data_uri('ana_logo.png'),
+            'ANA': _data_uri('ana_logo.png'),
+            'SEGUROS ATLAS': _data_uri('atlas_logo.png'),
+            'ATLAS': _data_uri('atlas_logo.png'),
+            'HDI SEGUROS': _data_uri('hdi_logo.png'),
+            'HDI': _data_uri('hdi_logo.png'),
+            'QUÁLITAS': _data_uri('qualitas_logo.png'),
+            'QUALITAS': _data_uri('qualitas_logo.png'),
         }
         # Build list aligned with data order
         company_logos = []
