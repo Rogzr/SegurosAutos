@@ -134,7 +134,8 @@
             // Encode data as base64 JSON
             const payload = { data, meta };
             const jsonData = JSON.stringify(payload);
-            const encodedData = btoa(jsonData);
+            // Encode to base64 safely for UTF-8 content (handles accents/ñ)
+            const encodedData = btoa(unescape(encodeURIComponent(jsonData)));
             
             // Create export URL
             const exportUrl = `/export/${encodedData}`;

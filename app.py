@@ -155,7 +155,16 @@ def export_pdf_with_data(data_json):
     
     try:
         # Decode the base64 encoded JSON data
-        decoded_data = base64.b64decode(data_json).decode('utf-8')
+        # Support base64 generated from browser with UTF-8 characters
+        try:
+            decoded_data = base64.b64decode(data_json).decode('utf-8')
+        except Exception:
+            # Try URL-safe and Latin-1 fallbacks then re-encode to UTF-8
+            decoded_bytes = base64.b64decode(data_json + '==')
+            try:
+                decoded_data = decoded_bytes.decode('utf-8')
+            except UnicodeDecodeError:
+                decoded_data = decoded_bytes.decode('latin-1')
         payload = json.loads(decoded_data)
         # Support both legacy (list) and new {data, meta}
         if isinstance(payload, dict) and 'data' in payload:
