@@ -7,6 +7,11 @@ and generate a comparison table that can be exported as PDF.
 import os
 import io
 from flask import Flask, render_template, request, send_file, url_for
+try:
+    # Wrap WSGI Flask app so it can run under ASGI servers (uvicorn)
+    from asgiref.wsgi import WsgiToAsgi  # type: ignore
+except Exception:  # asgiref may be missing locally
+    WsgiToAsgi = None  # type: ignore
 from datetime import datetime
 from pdf_parser import parse_pdf
 
@@ -253,3 +258,10 @@ def export_pdf_with_data(data_json):
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
+
+# Expose ASGI-compatible app for uvicorn in production
+if WsgiToAsgi is not None:
+    asgi_app = WsgiToAsgi(app)
+else:
+    # Fallback so local dev doesn't break if asgiref isn't installed yet
+    asgi_app = app
