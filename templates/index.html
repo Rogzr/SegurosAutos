@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comparador de Seguros de Auto</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Comparador de Seguros de Auto</h1>
+            <p>Sube las cotizaciones PDF de las aseguradoras para comparar coberturas</p>
+        </header>
+        
+        <main>
+            {% if error %}
+                <div class="error-message">
+                    <p>{{ error }}</p>
+                </div>
+            {% endif %}
+            
+            <form action="/process" method="post" enctype="multipart/form-data" class="upload-form">
+                <div class="file-input-container">
+                    <label for="files" class="file-input-label">
+                        <span class="file-input-text">Seleccionar archivos PDF</span>
+                        <input type="file" id="files" name="files" multiple accept=".pdf" required>
+                    </label>
+                    <div class="file-info">
+                        <small>Formatos soportados: HDI Seguros, Qualitas, ANA Seguros, Seguros Atlas</small>
+                    </div>
+                </div>
+                
+                <button type="submit" class="submit-btn">
+                    <span>Procesar Cotizaciones</span>
+                </button>
+            </form>
+            
+            <div class="instructions">
+                <h3>Instrucciones:</h3>
+                <ul>
+                    <li>Selecciona uno o más archivos PDF de cotizaciones de seguros</li>
+                    <li>Los archivos deben ser de las aseguradoras soportadas</li>
+                    <li>El sistema extraerá automáticamente los datos de cobertura</li>
+                    <li>Podrás comparar las opciones y exportar el resultado</li>
+                </ul>
+            </div>
+        </main>
+        
+        <footer>
+            <p>&copy; 2025 Comparador de Seguros de Auto</p>
+        </footer>
+    </div>
+    
+    <script>
+        // File input enhancement
+        const fileInput = document.getElementById('files');
+        const fileInputText = document.querySelector('.file-input-text');
+        
+        fileInput.addEventListener('change', function() {
+            const files = this.files;
+            if (files.length > 0) {
+                if (files.length === 1) {
+                    fileInputText.textContent = files[0].name;
+                } else {
+                    fileInputText.textContent = `${files.length} archivos seleccionados`;
+                }
+            } else {
+                fileInputText.textContent = 'Seleccionar archivos PDF';
+            }
+        });
+    </script>
+</body>
+</html>

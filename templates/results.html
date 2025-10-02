@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resultados de Comparación - Seguros de Auto</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Comparación de Seguros de Auto</h1>
+            {% if is_export %}
+                <img src="{{ logo_url }}" alt="Logo" class="logo">
+            {% endif %}
+        </header>
+        
+        <main>
+            {% if error %}
+                <div class="error-message">
+                    <p>{{ error }}</p>
+                </div>
+            {% endif %}
+            
+            {% if data %}
+                <div class="results-container">
+                    <div class="table-wrapper">
+                        <table class="comparison-table">
+                            <thead>
+                                <tr>
+                                    <th class="coverage-header">Coberturas</th>
+                                    {% for item in data %}
+                                        <th class="company-header">
+                                            <div style="display:flex; align-items:center; gap:8px; justify-content:center;">
+                                                {% if is_export and company_logos and company_logos[loop.index0] %}
+                                                    <img src="{{ company_logos[loop.index0] }}" alt="logo" style="height:22px; object-fit:contain;" />
+                                                {% endif %}
+                                                <span>{{ item.company }}</span>
+                                            </div>
+                                        </th>
+                                    {% endfor %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for field in fields %}
+                                    <tr>
+                                        <td class="field-name">{{ field }}</td>
+                                        {% for item in data %}
+                                            <td class="field-value" {% if not is_export %}contenteditable="true" data-field="{{ field }}" data-company="{{ loop.index0 }}" class="field-value editable"{% endif %}>{{ item.get(field, 'N/A') }}</td>
+                                        {% endfor %}
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    {% if not is_export %}
+                        <div class="actions">
+                            <button onclick="exportToPDF()" class="export-btn">
+                                <span>Exportar a PDF</span>
+                            </button>
+                            <a href="/" class="back-btn">
+                                <span>Nueva Comparación</span>
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            {% else %}
+                <div class="no-data">
+                    <p>No se encontraron datos para mostrar.</p>
+                    <a href="/" class="back-btn">Volver al inicio</a>
+                </div>
+            {% endif %}
+            
+            {% if errors %}
+                <div class="warnings">
+                    <h3>Advertencias:</h3>
+                    <ul>
+                        {% for error in errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+        </main>
+        
+        <footer>
+            <p>&copy; 2025 Comparador de Seguros de Auto</p>
+        </footer>
+    </div>
+    
+    {% if not is_export %}
+    <script>
+        // Local working copy of parsed data
+        const data = {{ data | tojson }};
+
+        // Normalize cell edits into data object before export
+        function syncEditsIntoData() {
+            const table = document.querySelector('.comparison-table');
+            if (!table) return;
+            const rows = table.tBodies[0].rows;
+            // Row 0 corresponds to first field in `fields`
+            const fields = {{ fields | tojson }};
+            for (let r = 0; r < rows.length; r++) {
+                const fieldName = fields[r];
+                const cells = rows[r].querySelectorAll('td.field-value');
+                cells.forEach((cell, idx) => {
+                    const text = cell.innerText.trim();
+                    if (!data[idx]) data[idx] = {};
+                    data[idx][fieldName] = text || 'N/A';
+                });
+            }
+        }
+
+        function exportToPDF() {
+            // Capture current edits from the table
+            syncEditsIntoData();
+
+            // Encode data as base64 JSON
+            const jsonData = JSON.stringify(data);
+            const encodedData = btoa(jsonData);
+            
+            // Create export URL
+            const exportUrl = `/export/${encodedData}`;
+            
+            // Create a temporary link and trigger download
+            const link = document.createElement('a');
+            link.href = exportUrl;
+            link.download = 'comparison.pdf';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        // Optional: visual cue for editable cells
+        document.querySelectorAll('td[contenteditable="true"]').forEach((cell) => {
+            cell.addEventListener('focus', () => cell.classList.add('editing'));
+            cell.addEventListener('blur', () => cell.classList.remove('editing'));
+        });
+    </script>
+    {% endif %}
+</body>
+</html>

@@ -1,0 +1,417 @@
+/* Modern CSS styling for Insurance Comparison App */
+
+/* Reset and base styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.6;
+    color: #1f2c36;
+    background: linear-gradient(135deg, #0b4a6a 0%, #0e5a83 100%);
+    min-height: 100vh;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Header styles */
+header {
+    text-align: center;
+    margin-bottom: 40px;
+    background: rgba(255, 255, 255, 0.97);
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(10px);
+}
+
+header h1 {
+    color: #0b4a6a;
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+    font-weight: 700;
+}
+
+header p {
+    color: #7f8c8d;
+    font-size: 1.1rem;
+}
+
+.logo {
+    max-width: 150px;
+    max-height: 50px;
+    margin-top: 20px;
+}
+
+/* Main content */
+main {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.95);
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(10px);
+}
+
+/* Upload form styles */
+.upload-form {
+    margin-bottom: 40px;
+}
+
+.file-input-container {
+    margin-bottom: 30px;
+}
+
+.file-input-label {
+    display: block;
+    width: 100%;
+    padding: 40px 20px;
+    border: 3px dashed #0e5a83;
+    border-radius: 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: #f8f9fa;
+}
+
+.file-input-label:hover {
+    border-color: #0b4a6a;
+    background: #e6f0f6;
+    transform: translateY(-2px);
+}
+
+.file-input-label input[type="file"] {
+    display: none;
+}
+
+.file-input-text {
+    font-size: 1.2rem;
+    color: #0e5a83;
+    font-weight: 600;
+}
+
+.file-info {
+    margin-top: 10px;
+    color: #7f8c8d;
+}
+
+/* Button styles */
+.submit-btn, .export-btn, .back-btn {
+    display: inline-block;
+    padding: 15px 30px;
+    background: linear-gradient(135deg, #0e5a83, #0b4a6a);
+    color: white;
+    text-decoration: none;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin: 10px;
+    box-shadow: 0 4px 15px rgba(14, 90, 131, 0.3);
+}
+
+.submit-btn:hover, .export-btn:hover, .back-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(14, 90, 131, 0.4);
+}
+
+.export-btn {
+    background: linear-gradient(135deg, #d4a017, #c7900f);
+    box-shadow: 0 4px 15px rgba(212, 160, 23, 0.35);
+}
+
+.export-btn:hover {
+    box-shadow: 0 6px 20px rgba(212, 160, 23, 0.45);
+}
+
+.back-btn {
+    background: linear-gradient(135deg, #5c6b73, #4a5961);
+    box-shadow: 0 4px 15px rgba(92, 107, 115, 0.35);
+}
+
+.back-btn:hover {
+    box-shadow: 0 6px 20px rgba(92, 107, 115, 0.45);
+}
+
+/* Instructions */
+.instructions {
+    background: #f8f9fa;
+    padding: 25px;
+    border-radius: 10px;
+    border-left: 4px solid #3498db;
+}
+
+.instructions h3 {
+    color: #2c3e50;
+    margin-bottom: 15px;
+    font-size: 1.3rem;
+}
+
+.instructions ul {
+    list-style: none;
+    padding-left: 0;
+}
+
+.instructions li {
+    padding: 8px 0;
+    padding-left: 25px;
+    position: relative;
+    color: #555;
+}
+
+.instructions li::before {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    color: #27ae60;
+    font-weight: bold;
+}
+
+/* Results container */
+.results-container {
+    margin-top: 20px;
+}
+
+.table-wrapper {
+    overflow-x: auto;
+    margin-bottom: 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* Comparison table */
+.comparison-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.comparison-table th,
+.comparison-table td {
+    padding: 15px 12px;
+    text-align: left;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.comparison-table th {
+    background: linear-gradient(135deg, #073b4c, #0b4a6a);
+    color: white;
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.coverage-header {
+    background: linear-gradient(135deg, #d4a017, #c7900f) !important;
+    font-size: 1.1rem !important;
+    text-align: center !important;
+}
+
+.company-header {
+    text-align: center !important;
+    font-size: 0.95rem !important;
+}
+
+.comparison-table tbody tr:hover {
+    background: #f8f9fa;
+}
+
+.comparison-table tbody tr:nth-child(even) {
+    background: #fafafa;
+}
+
+.comparison-table tbody tr:nth-child(even):hover {
+    background: #f0f0f0;
+}
+
+.field-name {
+    font-weight: 600;
+    color: #0b4a6a;
+    background: #e6f0f6 !important;
+    width: 200px;
+    min-width: 200px;
+}
+
+.field-value {
+    text-align: center;
+    color: #555;
+    font-size: 0.95rem;
+}
+
+/* Editable cells */
+td.editable {
+    outline: none;
+    background: #ffffff;
+    border-bottom: 1px dashed #cfd8dc;
+    cursor: text;
+}
+
+td.editable:focus,
+td.editing {
+    background: #fffde7;
+    box-shadow: inset 0 0 0 2px #ffd54f;
+}
+
+/* Actions */
+.actions {
+    text-align: center;
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 2px solid #ecf0f1;
+}
+
+/* Error and warning messages */
+.error-message, .warnings {
+    background: #f8d7da;
+    color: #721c24;
+    padding: 20px;
+    border-radius: 8px;
+    border-left: 4px solid #dc3545;
+    margin-bottom: 20px;
+}
+
+.warnings {
+    background: #fff3cd;
+    color: #856404;
+    border-left-color: #ffc107;
+}
+
+.warnings h3 {
+    margin-bottom: 10px;
+}
+
+.warnings ul {
+    list-style: none;
+    padding-left: 0;
+}
+
+.warnings li {
+    padding: 5px 0;
+    padding-left: 20px;
+    position: relative;
+}
+
+.warnings li::before {
+    content: "⚠";
+    position: absolute;
+    left: 0;
+}
+
+/* No data state */
+.no-data {
+    text-align: center;
+    padding: 60px 20px;
+    color: #7f8c8d;
+}
+
+.no-data p {
+    font-size: 1.2rem;
+    margin-bottom: 30px;
+}
+
+/* Footer */
+footer {
+    text-align: center;
+    margin-top: 40px;
+    padding: 20px;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.9rem;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .container {
+        padding: 10px;
+    }
+    
+    header h1 {
+        font-size: 2rem;
+    }
+    
+    main {
+        padding: 20px;
+    }
+    
+    .comparison-table th,
+    .comparison-table td {
+        padding: 10px 8px;
+        font-size: 0.9rem;
+    }
+    
+    .field-name {
+        width: 150px;
+        min-width: 150px;
+    }
+    
+    .submit-btn, .export-btn, .back-btn {
+        padding: 12px 24px;
+        font-size: 1rem;
+        margin: 5px;
+    }
+}
+
+@media (max-width: 480px) {
+    header h1 {
+        font-size: 1.8rem;
+    }
+    
+    .comparison-table th,
+    .comparison-table td {
+        padding: 8px 6px;
+        font-size: 0.85rem;
+    }
+    
+    .field-name {
+        width: 120px;
+        min-width: 120px;
+    }
+}
+
+/* Print styles for PDF export */
+@media print {
+    body {
+        background: white;
+    }
+    
+    .container {
+        max-width: none;
+        padding: 0;
+    }
+    
+    header, footer {
+        background: white;
+        box-shadow: none;
+    }
+    
+    main {
+        background: white;
+        box-shadow: none;
+        padding: 0;
+    }
+    
+    .actions {
+        display: none;
+    }
+    
+    .comparison-table {
+        box-shadow: none;
+    }
+    
+    .comparison-table th {
+        background: #f0f0f0 !important;
+        color: black !important;
+    }
+}
