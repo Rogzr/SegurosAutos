@@ -256,7 +256,7 @@ def parse_hdi(text: str) -> Dict[str, str]:
         result["Daños Materiales"] = "N/A"
     
     # Robo Total amount and deductible
-    rt_amount = _extract_amount_after(text, ['Robo Total', 'ROBO TOTAL'])
+    rt_amount = _extract_amount_after(text, ['Robo Total', 'ROBO TOTAL','Limite de Responsabilidad'])
     rt_ded = re.search(r'ROBO TOTAL[\s\S]{0,120}?DEDUCIBLE[:\s]*([0-9]+\.?\d*)%', text, re.IGNORECASE)
     if rt_amount and rt_ded:
         result["Robo Total"] = f"${rt_amount} Deducible {rt_ded.group(1)}%"
@@ -296,27 +296,27 @@ def parse_hdi(text: str) -> Dict[str, str]:
 def parse_qualitas(text: str) -> Dict[str, str]:
     """
     Parse Qualitas PDF format.
-    
+
     Args:
         text: Full text content of the PDF
-        
+
     Returns:
         Dictionary with extracted insurance data
     """
     result = {"company": "Qualitas"}
     result["vehicle_name"] = extract_vehicle(text)
-    
+
     # Totals (standardized)
     prima_total = _extract_amount_after(text, ['IMPORTE TOTAL', 'PRIMA TOTAL'])
-    prima_neta = _extract_amount_after(text, ['PRIMA NETA','Prima Neta'])
+    prima_neta = _extract_amount_after(text, ['PRIMA NETA', 'Prima Neta'])
     recargos = _extract_amount_after(text, ['Recargos'])
-    derechos = _extract_amount_after(text, ['Derechos de Póliza','Derechos de Poliza'])
+    derechos = _extract_amount_after(text, ['Derechos de Póliza', 'Derechos de Poliza'])
     fin = _compute_financials(prima_neta, prima_total, recargos, derechos)
     result.update(fin)
-    
+
     # Forma de Pago
     result["Forma de Pago"] = "CONTADO"
-    
+
     dm_amount = _extract_amount_after(text, ['Daños materiales', 'DAÑOS MATERIALES', 'SUMA ASEGURADA'])
     dm_ded = re.search(r'DAÑOS?\s+MATERIALES[\s\S]{0,120}?DEDUCIBLE[:\s]*([0-9]+\.?\d*)%', text, re.IGNORECASE)
     if dm_amount and dm_ded:
@@ -325,7 +325,7 @@ def parse_qualitas(text: str) -> Dict[str, str]:
         result["Daños Materiales"] = f"${dm_amount}"
     else:
         result["Daños Materiales"] = "N/A"
-    
+
     rt_amount = _extract_amount_after(text, ['Robo total', 'ROBO TOTAL', 'SUMA ASEGURADA'])
     rt_ded = re.search(r'ROBO\s+TOTAL[\s\S]{0,120}?DEDUCIBLE[:\s]*([0-9]+\.?\d*)%', text, re.IGNORECASE)
     if rt_amount and rt_ded:
@@ -334,38 +334,38 @@ def parse_qualitas(text: str) -> Dict[str, str]:
         result["Robo Total"] = f"${rt_amount}"
     else:
         result["Robo Total"] = "N/A"
-    
+
     # Responsabilidad Civil
     rc_match = re.search(r'Responsabilidad Civil[:\s]*\$?\s*([0-9,]+\.?\d*)', text, re.IGNORECASE)
     if not rc_match:
         # Try to match pattern like "Responsabilidad Civil $ 2,000,000.00 POR EVENTO"
         rc_match = re.search(r'Responsabilidad Civil[^\d$]*\$?\s*([0-9,]+\.?\d*)', text, re.IGNORECASE)
     result["Responsabilidad Civil"] = f"${rc_match.group(1)}" if rc_match else "N/A"
-    
+
     # Gastos Medicos Ocupantes
     gmo_match = re.search(r'Gastos Medicos Ocupantes[:\s]*\$?\s*([0-9,]+\.?\d*)', text, re.IGNORECASE)
     result["Gastos Medicos Ocupantes"] = f"${gmo_match.group(1)}" if gmo_match else "N/A"
-    
+
     # Asistencia Legal
     al_match = re.search(r'Gastos Legales[:\s]*(Amparada|No Amparada)', text, re.IGNORECASE)
-    result["Asistencia Legal"] = f"${al_match.group(1)}" if al_match else "N/A"
-    
+    result["Asistencia Legal"] = f"{al_match.group(1)}" if al_match else "N/A"
+
     # Asistencia Viajes
-    av_match = re.search(r'Asistencia Vial[:\s]*(Amparada|No Amparada))', text, re.IGNORECASE)
-    result["Asistencia Viajes"] = f"${av_match.group(1)}" if av_match else "N/A"
-    
+    av_match = re.search(r'Asistencia Vial[:\s]*(Amparada|No Amparada)', text, re.IGNORECASE)
+    result["Asistencia Viajes"] = f"{av_match.group(1)}" if av_match else "N/A"
+
     # Accidente al conductor
     ac_match = re.search(r'Muerte del Conductor X AA[:\s]*\$?([0-9,]+\.?\d*)', text, re.IGNORECASE)
     result["Accidente al conductor"] = f"${ac_match.group(1)}" if ac_match else "N/A"
-    
+
     # Responsabilidad civil catastrofica
     # Match "RC Complementaria Personas" followed by any non-digit, then a $ and the first amount (e.g. $ 2,000,000.00)
     rcc_match = re.search(r'RC Complementaria Personas[^\d$]*\$?\s*([0-9]{1,3}(?:,[0-9]{3})*(?:\.\d{2})?)', text, re.IGNORECASE)
     result["Responsabilidad civil catastrofica"] = f"${rcc_match.group(1)}" if rcc_match else "N/A"
-    
+
     # Desbielamiento por agua al motor: Not present in Qualitas
     result["Desbielamiento por agua al motor"] = "N/A"
-    
+
     return result
 
 def parse_ana(text: str) -> Dict[str, str]:
