@@ -304,8 +304,8 @@ def export_pdf_with_data(data_json):
                 color: #4a5961;
             }
             .meta .vehiculo { font-weight: 600; color: #0b4a6a; }
-            .company-header { display:flex; align-items:center; gap:8px; justify-content:center; }
-            .company-header img { height: 18px; object-fit: contain; }
+            .company-header-inner { display:flex; align-items:center; justify-content:center; height: 100%; }
+            .company-header-inner img { height: 18px; object-fit: contain; margin: 4px 0; }
         ''', font_config=font_config)
         
         HTML(string=html_content).write_pdf(pdf_buffer, stylesheets=[pdf_css], font_config=font_config)
