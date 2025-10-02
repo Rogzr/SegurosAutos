@@ -121,14 +121,14 @@ def process_files():
     # Build header colors for non-export view (used to color summary rows)
     header_colors: list[str] = []
     color_map = {
-        'ANA': '#E60012',
-        'ANA SEGUROS': '#E60012',
-        'HDI': '#00843D',
-        'HDI SEGUROS': '#00843D',
-        'QUALITAS': '#6F6F84',
-        'QUÁLITAS': '#6F6F84',
-        'SEGUROS ATLAS': '#D22630',
-        'ATLAS': '#D22630'
+        'ANA': '#FE1034',
+        'ANA SEGUROS': '#FE1034',
+        'HDI': '#006729',
+        'HDI SEGUROS': '#006729',
+        'QUALITAS': '#666678',
+        'QUÁLITAS': '#666678',
+        'SEGUROS ATLAS': '#D0112B',
+        'ATLAS': '#D0112B'
     }
     for item in parsed_data:
         name = (item.get('company') or '').upper()
@@ -242,14 +242,14 @@ def export_pdf_with_data(data_json):
         company_logos = []
         header_colors = []
         color_map = {
-            'ANA': '#E60012',            # ANA red
-            'ANA SEGUROS': '#E60012',
-            'HDI': '#00843D',            # HDI green
-            'HDI SEGUROS': '#00843D',
-            'QUALITAS': '#6F6F84',       # Qualitas gray/purple
-            'QUÁLITAS': '#6F6F84',
-            'SEGUROS ATLAS': '#D22630',  # Atlas red
-            'ATLAS': '#D22630'
+            'ANA': '#FE1034',            # ANA red (brand)
+            'ANA SEGUROS': '#FE1034',
+            'HDI': '#006729',            # HDI green (brand)
+            'HDI SEGUROS': '#006729',
+            'QUALITAS': '#666678',       # Quálitas gray (brand)
+            'QUÁLITAS': '#666678',
+            'SEGUROS ATLAS': '#D0112B',  # Atlas red (brand)
+            'ATLAS': '#D0112B'
         }
         for item in parsed_data:
             name = (item.get('company') or '').upper()
@@ -319,8 +319,8 @@ def export_pdf_with_data(data_json):
                 border-radius: 6px;
             }
             th {
-                background: #0b4a6a;
-                color: #fff;
+                background: #eef2f6;
+                color: #1f2c36;
                 font-weight: bold;
             }
             /* Coverage column cells: same style as header */

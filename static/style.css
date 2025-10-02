@@ -234,10 +234,11 @@ main {
     font-size: 0.95rem !important;
 }
 .company-header-cell {
-    color: #ffffff;
+    color: #1f2c36;
     font-weight: 700;
     border-radius: 10px;
     height: 42px;
+    background: #f5f7fa;
 }
 .company-header-inner { display:flex; align-items:center; justify-content:center; height:100%; }
 .company-header-inner img { height: 26px; object-fit: contain; filter: none; }
