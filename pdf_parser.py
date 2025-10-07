@@ -235,8 +235,8 @@ def parse_ana(text: str) -> Dict[str, str]:
     # Totals (standardized)
     prima_total = _extract_amount_after(text, ['PRIMA TOTAL', 'TOTAL'])
     prima_neta = _extract_amount_after(text, ['PRIMA NETA','Prima Neta'])
-    recargos = _extract_amount_after(text, ['Recargos'])
-    derechos = _extract_amount_after(text, ['Derechos de Póliza','Derechos de Poliza'])
+    recargos = _extract_amount_after(text, ['Recargos'], lookahead_chars=20)
+    derechos = _extract_amount_after(text, ['Derechos de Póliza','Derechos de Poliza'], lookahead_chars=20)
     fin = _compute_financials(prima_neta, prima_total, recargos, derechos)
     result.update(fin)
     
@@ -333,12 +333,12 @@ def parse_qualitas(text: str) -> Dict[str, str]:
     result["Gastos Medicos Ocupantes"] = f"${gmo_match.group(1)}" if gmo_match else "N/A"
 
     # Asistencia Legal
-    al_match = re.search(r'Gastos Legales[:\s]*(Amparada|No Amparada)', text, re.IGNORECASE)
-    result["Asistencia Legal"] = f"{al_match.group(1)}" if al_match else "N/A"
+    al_match = re.search(r'Gastos Legales[:\s]*(AMPARADA|NO AMPARADA)', text, re.IGNORECASE)
+    result["Asistencia Legal"] = f"{al_match.group(1).capitalize()}" if al_match else "N/A"
 
     # Asistencia Viajes
-    av_match = re.search(r'Asistencia Vial[:\s]*(Amparada|No Amparada)', text, re.IGNORECASE)
-    result["Asistencia Viajes"] = f"{av_match.group(1)}" if av_match else "N/A"
+    av_match = re.search(r'Asistencia Vial[:\s]*(AMPARADA|NO AMPARADA)', text, re.IGNORECASE)
+    result["Asistencia Viajes"] = f"{av_match.group(1).capitalize()}" if av_match else "N/A"
 
     # Accidente al conductor
     # ac_match = re.search(r'Muerte del Conductor X AA[:\s]*\$?([0-9,]+\.?\d*)', text, re.IGNORECASE)
