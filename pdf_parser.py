@@ -257,7 +257,7 @@ def parse_hdi(text: str) -> Dict[str, str]:
     if rt_amount:
         result["Robo Total"] = f"${rt_amount}"
     else:
-        result["Robo Total"] = "N/A"
+        result["Robo Total"] = f"${dm_amount}"
     
     
     # Responsabilidad Civil
