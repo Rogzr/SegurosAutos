@@ -104,32 +104,20 @@ def _ade_extract_unified(pdf_content: bytes) -> Optional[Dict[str, Any]]:
     - LANDING_AI_API_KEY: VA API key (Basic auth)
     - LANDING_AI_ADE_URL: Full endpoint URL (defaults to Landing AI ADE endpoint)
       Default: https://api.va.landing.ai/v1/tools/agentic-document-analysis
-    - LANDING_AI_SCHEMA_JSON: Unified extraction JSON schema string (preferred)
-      OR
-    - LANDING_AI_SCHEMA_FILE: Path to a JSON file containing the schema
+    The extraction schema is always loaded from a local 'schema.json'.
     """
     api_key = os.environ.get("LANDING_AI_API_KEY")
     endpoint = os.environ.get("LANDING_AI_ADE_URL") or "https://api.va.landing.ai/v1/tools/agentic-document-analysis"
-    schema_json = os.environ.get("LANDING_AI_SCHEMA_JSON")
-    schema_file = os.environ.get("LANDING_AI_SCHEMA_FILE")
 
     if not api_key:
         raise RuntimeError("Missing LANDING_AI_API_KEY in environment")
-    # Load schema content
-    schema: Dict[str, Any]
-    if schema_json:
-        try:
-            schema = json.loads(schema_json)
-        except Exception as exc:
-            raise RuntimeError(f"Invalid LANDING_AI_SCHEMA_JSON: {exc}")
-    elif schema_file:
-        try:
-            with open(schema_file, "r", encoding="utf-8") as f:
-                schema = json.load(f)
-        except Exception as exc:
-            raise RuntimeError(f"Failed to read LANDING_AI_SCHEMA_FILE: {exc}")
-    else:
-        raise RuntimeError("Provide LANDING_AI_SCHEMA_JSON or LANDING_AI_SCHEMA_FILE in environment")
+    # Always load schema from local schema.json (project root)
+    schema_path = os.path.join(os.path.dirname(__file__), 'schema.json')
+    try:
+        with open(schema_path, "r", encoding="utf-8") as f:
+            schema: Dict[str, Any] = json.load(f)
+    except Exception as exc:
+        raise RuntimeError(f"Failed to read schema.json: {exc}")
 
     headers = {"Authorization": f"Basic {api_key}"}
 
