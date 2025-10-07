@@ -6,7 +6,7 @@ and generate a comparison table that can be exported as PDF.
 
 import os
 import io
-from flask import Flask, render_template, request, send_file, url_for
+from flask import Flask, render_template, request, send_file
 try:
     # Wrap WSGI Flask app so it can run under ASGI servers (uvicorn)
     from asgiref.wsgi import WsgiToAsgi  # type: ignore
@@ -165,8 +165,7 @@ def check_weasyprint_availability():
     global WEASYPRINT_AVAILABLE
     if WEASYPRINT_AVAILABLE is None:
         try:
-            from weasyprint import HTML, CSS
-            from weasyprint.text.fonts import FontConfiguration
+            import weasyprint  # type: ignore  # noqa: F401
             WEASYPRINT_AVAILABLE = True
         except Exception as e:
             # On Windows, WeasyPrint raises OSError due to missing GTK/Pango libs.
@@ -216,7 +215,8 @@ def export_pdf_with_data(data_json):
         parsed_data.sort(key=lambda x: x.get('company', ''))
         
         # Helper: build data URI for static images so WeasyPrint embeds them reliably
-        import base64, mimetypes
+        import base64
+        import mimetypes
         def _data_uri(static_filename: str) -> str:
             file_path = os.path.join(app.root_path, 'static', static_filename)
             mime = mimetypes.guess_type(file_path)[0] or 'image/png'
@@ -378,16 +378,7 @@ def export_pdf_with_data(data_json):
         except Exception:
             pass
 
-        html_content = render_template('results.html',
-                                     data=parsed_data,
-                                     fields=MASTER_FIELDS,
-                                     is_export=True,
-                                     logo_url=strategos_logo,
-                                     company_logos=company_logos,
-                                     header_colors=header_colors,
-                                     company_col_width=company_col_width,
-                                     today_str=date_str,
-                                     vehicle_name=vehicle_name)
+        # Re-render not necessary; keep single render above
 
         HTML(string=html_content).write_pdf(pdf_buffer, stylesheets=[pdf_css], font_config=font_config)
         
