@@ -253,7 +253,7 @@ def parse_hdi(text: str) -> Dict[str, str]:
         result["Daños Materiales"] = "N/A"
     
     # Robo Total amount and deductible
-    rt_amount = _extract_amount_after(text, ['Robo Total ', 'ROBO TOTAL','Limite de Responsabilidad'])
+    rt_amount = _extract_amount_after(text, ['Robo Total ', 'ROBO TOTAL'])
     if rt_amount:
         result["Robo Total"] = f"${rt_amount}"
     else:
@@ -264,7 +264,7 @@ def parse_hdi(text: str) -> Dict[str, str]:
     # rc_match = re.search(r'Responsabilidad Civil (Límite Único y Combinado)[:\s]*([0-9,]+\.?\d*)', text, re.IGNORECASE)
     # result["Responsabilidad Civil"] = f"${rc_match.group(1)}" if rc_match else "N/A"
     rc_amount = _extract_amount_after(text, [
-        'Responsabilidad Civil', 'RESPONSABILIDAD CIVIL'
+        'Responsabilidad Civil  (Límite Único y Combinado)', 'RESPONSABILIDAD CIVIL  (Límite Único y Combinado)'
     ])
     if rc_amount:
         result["Responsabilidad Civil"] = f"${rc_amount}"
