@@ -1,66 +1,17 @@
 #!/usr/bin/env python3
 """
-Test script for the Insurance PDF Parser
-Tests the company identification and parsing functionality
+Minimal tests for app initialization and routes.
 """
 
 import sys
 import os
 sys.path.append('.')
 
-from pdf_parser import identify_company, parse_hdi, parse_qualitas, parse_ana, parse_atlas
+from pdf_parser import parse_pdf
 
-def test_company_identification():
-    """Test company identification from text samples."""
-    print("Testing Company Identification...")
-    
-    test_cases = [
-        ("HDI SEGUROS policy document", "HDI"),
-        ("Seguros Atlas quotation", "Atlas"),
-        ("ANA SEGUROS insurance", "ANA"),
-        ("Qualitas insurance policy", "Qualitas"),
-        ("Unknown insurance company", None)
-    ]
-    
-    for text, expected in test_cases:
-        result = identify_company(text)
-        status = "PASS" if result == expected else "FAIL"
-        print(f"{status}: '{text[:30]}...' -> {result} (expected: {expected})")
-    
-    print()
-
-def test_parsing_functions():
-    """Test parsing functions with sample data."""
-    print("Testing Parsing Functions...")
-    
-    # Sample HDI text
-    hdi_sample = """
-    HDI SEGUROS
-    Total a Pagar: $15,000.00
-    Daños Materiales
-    Límite de Responsabilidad: $500,000
-    Deducible: 5%
-    Robo Total
-    Límite de Responsabilidad: $500,000
-    Deducible: 10%
-    Responsabilidad Civil (Límite Único y Combinado): $1,000,000
-    Gastos Médicos Ocupantes: $50,000
-    Asistencia Jurídica: $25,000
-    Asistencia en viajes: $10,000
-    Accidentes Automovilísticos al Conductor: $100,000
-    Responsabilidad Civil en Exceso por Muerte de Personas: $2,000,000
-    """
-    
-    try:
-        hdi_result = parse_hdi(hdi_sample)
-        print("PASS: HDI parsing successful")
-        print(f"   Company: {hdi_result.get('company', 'N/A')}")
-        print(f"   Prima: {hdi_result.get('Prima', 'N/A')}")
-        print(f"   Daños Materiales: {hdi_result.get('Daños Materiales', 'N/A')}")
-    except Exception as e:
-        print(f"FAIL: HDI parsing failed: {e}")
-    
-    print()
+def test_noop_parser_import():
+    """Ensure parse_pdf is importable (ADE-driven parser)."""
+    assert callable(parse_pdf)
 
 def test_flask_app():
     """Test Flask app creation."""
@@ -85,8 +36,7 @@ def main():
     print("Insurance PDF Parser Test Suite")
     print("=" * 50)
     
-    test_company_identification()
-    test_parsing_functions()
+    test_noop_parser_import()
     test_flask_app()
     
     print("All tests completed!")

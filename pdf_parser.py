@@ -1,93 +1,15 @@
 """
-PDF parsing module for insurance quotation documents.
-Handles parsing of PDFs from four specific insurance companies:
-- HDI Seguros
-- Qualitas
-- ANA Seguros
-- Seguros Atlas
+PDF parsing module using Landing AI ADE unified schema for insurance quotations.
 """
 
-import fitz  # PyMuPDF
-import re
-from typing import Dict, Optional, List
-
-def load_brands() -> List[str]:
-    """Load brands from brands.json. Returns empty list if not present."""
-    import json, os
-    try:
-        path = os.path.join(os.path.dirname(__file__), 'brands.json')
-        with open(path, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-            if isinstance(data, list) and data:
-                return [str(x).upper() for x in data]
-    except Exception:
-        pass
-    return []
-
-BRANDS = load_brands()
-
-def extract_vehicle(text: str) -> str:
-    """Best-effort vehicle descriptor extraction from PDF text."""
-    upper = text.upper().replace('\n', ' ')
-    patterns: List[str] = []
-    if BRANDS:
-        brands_pattern = r'(?:' + '|'.join([b.replace('-', r'\-') for b in BRANDS]) + r')'
-        patterns.append(rf'{brands_pattern}\s+[A-Z0-9][A-Z0-9\- ]{{2,60}}')
-    # Generic fallbacks that don't depend on brand list
-    patterns.append(r'DESCRIPCION DEL VEHICULO ASEGURADO\s+([A-Z0-9 ,\-]+)')
-    patterns.append(r'VEH[ÍI]CULO\s*[:]*\s*([A-Z0-9 ,\-]{3,60})')
-    candidate = ''
-    import re
-    for p in patterns:
-        m = re.search(p, upper)
-        if m:
-            candidate = m.group(0) if m.lastindex is None else m.group(1)
-            break
-    if not candidate:
-        return ''
-    # Normalize
-    candidate = candidate.strip()
-    # If starts with VW, expand to VOLKSWAGEN
-    if candidate.startswith('VW '):
-        candidate = candidate.replace('VW ', 'VOLKSWAGEN ', 1)
-    # Remove noisy tokens
-    noise_tokens = [
-        'AUTOMOVILES NACIONALES', 'AUTOMOVILES', 'PARTICULAR', 'NORMAL', 'SERVICIO',
-        'DESCRIPCION DEL VEHICULO ASEGURADO', 'DESC', 'AMPLIA', 'PLAN', 'USO',
-        'L4', 'TSI', 'ABS', 'BA', 'AC', 'AUT', 'AUTO', '5 OCUP', '5P', '5PTAS',
-        '1.4T', '2.0T', 'CVT', 'TIPTRONIC', 'AT', 'MT','SUMA ASEGURADA', 'SUM', 'RIESGOS'
-    ]
-    for t in noise_tokens:
-        candidate = candidate.replace(' ' + t + ' ', ' ')
-        if candidate.endswith(' ' + t):
-            candidate = candidate[:-(len(t)+1)]
-    # Collapse whitespace
-    candidate = ' '.join(candidate.split())
-    return candidate
-
-def _extract_amount_after(text: str, anchors: List[str], lookahead_chars: int = 250) -> Optional[str]:
-    """Find first currency-like amount immediately after any of the anchor patterns.
-    Returns amount string with thousands and decimals, without leading $.
-    """
-    import re
-    upper = text.upper()
-    for a in anchors:
-        try:
-            m = re.search(a.upper(), upper)
-            if not m:
-                continue
-            start = m.end()
-            window = upper[start:start + lookahead_chars]
-            # Match $ 616,000.00 or 616,000.00 etc.
-            m2 = re.search(r'\$?\s*([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]{2})?)', window)
-            if m2:
-                return m2.group(1)
-        except Exception:
-            continue
-    return None
+import os
+import json
+from typing import Dict, Optional, List, Any, Iterable
+import requests
 
 def _first_amount(text: str) -> Optional[str]:
-    """Return first currency-looking amount in text."""
+    """Return first currency-looking amount in text. Kept for compatibility."""
+    import re
     m = re.search(r'\$?\s*([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]{2})?)', text)
     return m.group(1) if m else None
 
@@ -149,7 +71,7 @@ def _compute_financials(prima_neta_raw: Optional[str], prima_total_raw: Optional
 
 def parse_pdf(pdf_content: bytes) -> Optional[Dict[str, str]]:
     """
-    Main function to parse PDF content and extract insurance data.
+    Main function to parse PDF content using Landing AI ADE unified schema.
     
     Args:
         pdf_content: Raw PDF file content as bytes
@@ -158,356 +80,205 @@ def parse_pdf(pdf_content: bytes) -> Optional[Dict[str, str]]:
         Dictionary with extracted insurance data or None if parsing fails
     """
     try:
-        # Open PDF from bytes
-        doc = fitz.open(stream=pdf_content, filetype="pdf")
-        
-        # Extract text from all pages
-        full_text = ""
-        for page_num in range(len(doc)):
-            page = doc[page_num]
-            full_text += page.get_text()
-        
-        doc.close()
-        
-        # Identify company and parse accordingly
-        company = identify_company(full_text)
-        
-        if not company:
+        ade_data = _ade_extract_unified(pdf_content)
+        if not ade_data:
             return None
-        
-        # Parse based on company type
-        if company == "HDI":
-            return parse_hdi(full_text)
-        elif company == "Qualitas":
-            return parse_qualitas(full_text)
-        elif company == "ANA":
-            return parse_ana(full_text)
-        elif company == "Atlas":
-            return parse_atlas(full_text)
-        
-        return None
-        
+        return _map_ade_to_result(ade_data)
     except Exception as e:
         print(f"Error parsing PDF: {str(e)}")
         return None
 
-def identify_company(text: str) -> Optional[str]:
-    """
-    Identify the insurance company from PDF text.
-    
-    Args:
-        text: Full text content of the PDF
-        
-    Returns:
-        Company identifier or None if not recognized
-    """
-    text_upper = text.upper()
-    
-    # Check for Atlas - look for "ATLAS" in the text
-    if "ATLAS" in text_upper and "SEGUROS ATLAS" not in text_upper:
-        return "Atlas"
-    # Check for ANA - look for "ANA" but not in other company contexts
-    elif "ANA" in text_upper and "HDI" not in text_upper and "ATLAS" not in text_upper and "QUALITAS" not in text_upper:
-        return "ANA"
-    # Check for HDI
-    elif "HDI SEGUROS" in text_upper or "HDI" in text_upper:
-        return "HDI"
-    # Check for Qualitas
-    elif "QUÁLITAS" in text_upper or "QUALITAS" in text_upper:
-        return "Qualitas"
-    
-    return None
 
-def parse_hdi(text: str) -> Dict[str, str]:
+def parse_pdfs(pdf_contents: Iterable[bytes]) -> List[Optional[Dict[str, str]]]:
+    """Batch parse helper using ADE; sequential calls for 1-2 page PDFs."""
+    results: List[Optional[Dict[str, str]]] = []
+    for content in pdf_contents:
+        results.append(parse_pdf(content))
+    return results
+
+
+def _ade_extract_unified(pdf_content: bytes) -> Optional[Dict[str, Any]]:
+    """Call Landing AI ADE extraction with a unified schema and return JSON dict.
+
+    Expected environment variables:
+    - LANDING_AI_API_KEY: VA API key (Basic auth)
+    - LANDING_AI_ADE_URL: Full endpoint URL (defaults to Landing AI ADE endpoint)
+      Default: https://api.va.landing.ai/v1/tools/agentic-document-analysis
+    - LANDING_AI_SCHEMA_JSON: Unified extraction JSON schema string (preferred)
+      OR
+    - LANDING_AI_SCHEMA_FILE: Path to a JSON file containing the schema
     """
-    Parse HDI Seguros PDF format.
-    
-    Args:
-        text: Full text content of the PDF
-        
-    Returns:
-        Dictionary with extracted insurance data
-    """
-    result = {"company": "HDI Seguros"}
-    result["vehicle_name"] = extract_vehicle(text)
-    
-    # Totals (standardized)
-    prima_total = _extract_amount_after(text, ['Total a Pagar', 'IMPORTE TOTAL', 'TOTAL A PAGAR', 'Prima Total', 'PRIMA TOTAL'])
-    prima_neta = _extract_amount_after(text, ['PRIMA NETA','Prima Neta'])
-    recargos = _extract_amount_after(text, ['Recargos'])
-    derechos = _extract_amount_after(text, ['Derechos de Póliza','Derechos de Poliza','Derechos'])
-    fin = _compute_financials(prima_neta, prima_total, recargos, derechos)
-    result.update(fin)
-    
-    # Forma de Pago: Standardize to "CONTADO"
-    result["Forma de Pago"] = "CONTADO"
-    
-    # Daños Materiales amount (limit)
-    dm_amount = _extract_amount_after(text, [
-        'Daños Materiales', 'DAÑOS MATERIALES'
-    ])
-    # Deducible DM
-    dm_ded = re.search(r'DAÑOS? MATERIALES[\s\S]{0,120}?DEDUCIBLE[:\s]*([0-9]+\.?\d*)%', text, re.IGNORECASE)
-    if dm_amount and dm_ded:
-        result["Daños Materiales"] = f"${dm_amount} Deducible {dm_ded.group(1)}%"
-    elif dm_amount:
-        result["Daños Materiales"] = f"${dm_amount}"
+    api_key = os.environ.get("LANDING_AI_API_KEY")
+    endpoint = os.environ.get("LANDING_AI_ADE_URL") or "https://api.va.landing.ai/v1/tools/agentic-document-analysis"
+    schema_json = os.environ.get("LANDING_AI_SCHEMA_JSON")
+    schema_file = os.environ.get("LANDING_AI_SCHEMA_FILE")
+
+    if not api_key:
+        raise RuntimeError("Missing LANDING_AI_API_KEY in environment")
+    # Load schema content
+    schema: Dict[str, Any]
+    if schema_json:
+        try:
+            schema = json.loads(schema_json)
+        except Exception as exc:
+            raise RuntimeError(f"Invalid LANDING_AI_SCHEMA_JSON: {exc}")
+    elif schema_file:
+        try:
+            with open(schema_file, "r", encoding="utf-8") as f:
+                schema = json.load(f)
+        except Exception as exc:
+            raise RuntimeError(f"Failed to read LANDING_AI_SCHEMA_FILE: {exc}")
     else:
-        result["Daños Materiales"] = "N/A"
-    
-    # Robo Total amount and deductible
-    rt_amount = _extract_amount_after(text, ['Robo Total', 'ROBO TOTAL','Limite de Responsabilidad'])
-    rt_ded = re.search(r'ROBO TOTAL[\s\S]{0,120}?DEDUCIBLE[:\s]*([0-9]+\.?\d*)%', text, re.IGNORECASE)
-    if rt_amount and rt_ded:
-        result["Robo Total"] = f"${rt_amount} Deducible {rt_ded.group(1)}%"
-    elif rt_amount:
-        result["Robo Total"] = f"${rt_amount}"
+        raise RuntimeError("Provide LANDING_AI_SCHEMA_JSON or LANDING_AI_SCHEMA_FILE in environment")
+
+    headers = {"Authorization": f"Basic {api_key}"}
+
+    files = {"pdf": ("document.pdf", pdf_content, "application/pdf")}
+    data = {"fields_schema": json.dumps(schema)}
+
+    resp = requests.post(endpoint, headers=headers, files=files, data=data, timeout=60)
+    if resp.status_code >= 400:
+        raise RuntimeError(f"ADE request failed: {resp.status_code} {resp.text[:240]}")
+    try:
+        return resp.json()
+    except Exception:
+        # Attempt to parse text to JSON if response is stringified
+        try:
+            return json.loads(resp.text)
+        except Exception as exc:
+            raise RuntimeError(f"Invalid ADE JSON response: {exc}")
+
+
+def _map_ade_to_result(ade: Dict[str, Any]) -> Dict[str, str]:
+    """Map ADE unified response to app's expected keys and compute financials."""
+    # ADE API shape: { data: { extracted_schema: {...} } }
+    container = ade.get("data") or ade
+    if isinstance(container, dict) and "extracted_schema" in container:
+        fields = container.get("extracted_schema") or {}
     else:
-        result["Robo Total"] = "N/A"
-    
-    # Responsabilidad Civil
-    rc_match = re.search(r'Responsabilidad Civil (Límite Único y Combinado)[:\s]*([0-9,]+\.?\d*)', text, re.IGNORECASE)
-    result["Responsabilidad Civil"] = f"${rc_match.group(1)}" if rc_match else "N/A"
-    
-    # Gastos Medicos Ocupantes
-    gmo_match = re.search(r'Gastos Médicos Ocupantes  (Límite Único Combinado)[:\s]*([0-9,]+\.?\d*)', text, re.IGNORECASE)
-    result["Gastos Medicos Ocupantes"] = f"${gmo_match.group(1)}" if gmo_match else "N/A"
-    
-    # Asistencia Legal
-    al_match = re.search(r'Asistencia Jurídica[:\s]*(Amparada|No Amparada)', text, re.IGNORECASE)
-    result["Asistencia Legal"] = f"{al_match.group(1)}" if al_match else "N/A"
-    
-    # ASistencia Viajes
-    av_match = re.search(r'Asistencia en viajes[:\s]*(Amparada|No Amparada)', text, re.IGNORECASE)
-    result["Asistencia Viajes"] = f"{av_match.group(1)}" if av_match else "N/A"
-    
-    # Accidente al conductor
-    ac_match = re.search(r'Accidentes Automovilísticos al Conductor[:\s]*\$?([0-9,]+\.?\d*)', text, re.IGNORECASE)
-    result["Accidente al conductor"] = f"${ac_match.group(1)}" if ac_match else "N/A"
-    
-    # Responsabilidad civil catastrofica
-    rcc_match = re.search(r'Responsabilidad Civil en Exceso por Muerte de Personas[:\s]*([0-9,]+\.?\d*)', text, re.IGNORECASE)
-    result["Responsabilidad civil catastrofica"] = rcc_match.group(1) if rcc_match else "N/A"
-    # Desbielamiento por agua al motor: Not present in HDI
-    result["Desbielamiento por agua al motor"] = "N/A"
-    
+        # Fallbacks for other shapes
+        fields = ade.get("fields") or container or ade
+
+    def get_field(*names: str) -> Optional[str]:
+        for n in names:
+            if n in fields and fields[n] not in (None, ""):
+                v = fields[n]
+                if isinstance(v, dict) and "value" in v:
+                    return str(v.get("value") or "").strip()
+                return str(v).strip()
+        return None
+
+    # Company (optional in schema) and vehicle
+    company = get_field("company", "insurer", "aseguradora") or "N/A"
+    vehicle_name = ""
+    # Nested location: vehicle_info.vehiculo
+    if isinstance(fields, dict):
+        try:
+            vehicle_name = (
+                (fields.get("vehicle_info") or {}).get("vehiculo")
+                or get_field("vehicle_name", "vehiculo", "descripcion_vehiculo")
+                or ""
+            )
+        except Exception:
+            vehicle_name = get_field("vehicle_name", "vehiculo", "descripcion_vehiculo") or ""
+
+    # Raw financials
+    # Nested summary.* per provided schema
+    prima_total_raw = None
+    prima_neta_raw = None
+    recargos_raw = None
+    derechos_raw = None
+    if isinstance(fields, dict) and isinstance(fields.get("summary"), dict):
+        summary = fields.get("summary") or {}
+        prima_total_raw = summary.get("prima_total")
+        prima_neta_raw = summary.get("prima_neta")
+        recargos_raw = summary.get("recargos")
+        derechos_raw = summary.get("derechos")
+    # Fallbacks
+    prima_total_raw = prima_total_raw or get_field("prima_total", "primaTotal", "IMPORTE TOTAL", "PRIMA TOTAL")
+    prima_neta_raw = prima_neta_raw or get_field("prima_neta", "primaNeta", "PRIMA NETA")
+    recargos_raw = recargos_raw or get_field("recargos")
+    derechos_raw = derechos_raw or get_field("derechos_poliza", "derechos_de_poliza", "derechos")
+
+    fin = _compute_financials(prima_neta_raw, prima_total_raw, recargos_raw, derechos_raw)
+
+    # Coverages: map from coverages[] list when available; fallback to flat keys
+    danos_materiales = "N/A"
+    robo_total = "N/A"
+    responsabilidad_civil = "N/A"
+    gmo = "N/A"
+    asistencia_legal = get_field("asistencia_legal", "gastos_legales", "asistencia_juridica") or "N/A"
+    asistencia_viajes = get_field("asistencia_viajes", "asistencia_vial", "asistencia_en_viajes") or "N/A"
+    acc_conductor = get_field("accidente_conductor", "accidente_al_conductor", "muerte_conductor")
+    acc_conductor = f"${acc_conductor}" if acc_conductor else "N/A"
+    rc_cat = get_field("rc_catastrofica", "rc_complementaria_personas", "rc_cat_monto")
+    rc_cat = f"${rc_cat}" if rc_cat else "N/A"
+    desb_agua = get_field("desbielamiento_agua_motor", "desbielamiento_por_agua") or "N/A"
+
+    coverages = []
+    if isinstance(fields, dict):
+        coverages = fields.get("coverages") or []
+    # Helper to find coverage by name
+    def cov_by_name(names: List[str]) -> Optional[Dict[str, Any]]:
+        if not isinstance(coverages, list):
+            return None
+        for c in coverages:
+            try:
+                n = str(c.get("nombre") or "").strip().upper()
+                for target in names:
+                    if target in n:
+                        return c
+            except Exception:
+                continue
+        return None
+
+    dm_cov = cov_by_name(["DAÑOS MATERIALES", "DANOS MATERIALES"]) or {}
+    if dm_cov:
+        monto = dm_cov.get("suma_asegurada")
+        ded = dm_cov.get("porcentaje_deducible")
+        if monto and ded not in (None, ""):
+            danos_materiales = f"${monto} Deducible {ded}%"
+        elif monto:
+            danos_materiales = f"${monto}"
+
+    rt_cov = cov_by_name(["ROBO TOTAL"]) or {}
+    if rt_cov:
+        monto = rt_cov.get("suma_asegurada")
+        ded = rt_cov.get("porcentaje_deducible")
+        if monto and ded not in (None, ""):
+            robo_total = f"${monto} Deducible {ded}%"
+        elif monto:
+            robo_total = f"${monto}"
+
+    rc_cov = cov_by_name(["RESPONSABILIDAD CIVIL"]) or {}
+    if rc_cov:
+        monto = rc_cov.get("suma_asegurada")
+        if monto:
+            responsabilidad_civil = f"${monto}"
+
+    gmo_cov = cov_by_name(["GASTOS MEDICOS", "GASTOS MÉDICOS"]) or {}
+    if gmo_cov:
+        monto = gmo_cov.get("suma_asegurada")
+        if monto:
+            gmo = f"${monto}"
+
+    forma_pago = get_field("forma_de_pago", "forma_pago") or "CONTADO"
+
+    result: Dict[str, str] = {
+        "company": company,
+        "vehicle_name": vehicle_name,
+        **fin,
+        "Forma de Pago": forma_pago,
+        "Daños Materiales": danos_materiales,
+        "Robo Total": robo_total,
+        "Responsabilidad Civil": responsabilidad_civil,
+        "Gastos Medicos Ocupantes": gmo,
+        "Asistencia Legal": asistencia_legal,
+        "Asistencia Viajes": asistencia_viajes,
+        "Accidente al conductor": acc_conductor,
+        "Responsabilidad civil catastrofica": rc_cat,
+        "Desbielamiento por agua al motor": desb_agua,
+    }
     return result
 
-def parse_qualitas(text: str) -> Dict[str, str]:
-    """
-    Parse Qualitas PDF format.
-
-    Args:
-        text: Full text content of the PDF
-
-    Returns:
-        Dictionary with extracted insurance data
-    """
-    result = {"company": "Qualitas"}
-    result["vehicle_name"] = extract_vehicle(text)
-
-    # Totals (standardized)
-    prima_total = _extract_amount_after(text, ['IMPORTE TOTAL', 'PRIMA TOTAL'])
-    prima_neta = _extract_amount_after(text, ['PRIMA NETA', 'Prima Neta'])
-    recargos = _extract_amount_after(text, ['Recargos'])
-    derechos = _extract_amount_after(text, ['Derechos de Póliza', 'Derechos de Poliza'])
-    fin = _compute_financials(prima_neta, prima_total, recargos, derechos)
-    result.update(fin)
-
-    # Forma de Pago
-    result["Forma de Pago"] = "CONTADO"
-
-    dm_amount = _extract_amount_after(text, ['Daños materiales', 'DAÑOS MATERIALES', 'SUMA ASEGURADA'])
-    dm_ded = re.search(r'DAÑOS?\s+MATERIALES[\s\S]{0,120}?DEDUCIBLE[:\s]*([0-9]+\.?\d*)%', text, re.IGNORECASE)
-    if dm_amount and dm_ded:
-        result["Daños Materiales"] = f"${dm_amount} Deducible {dm_ded.group(1)}%"
-    elif dm_amount:
-        result["Daños Materiales"] = f"${dm_amount}"
-    else:
-        result["Daños Materiales"] = "N/A"
-
-    rt_amount = _extract_amount_after(text, ['Robo total', 'ROBO TOTAL', 'SUMA ASEGURADA'])
-    rt_ded = re.search(r'ROBO\s+TOTAL[\s\S]{0,120}?DEDUCIBLE[:\s]*([0-9]+\.?\d*)%', text, re.IGNORECASE)
-    if rt_amount and rt_ded:
-        result["Robo Total"] = f"${rt_amount} Deducible {rt_ded.group(1)}%"
-    elif rt_amount:
-        result["Robo Total"] = f"${rt_amount}"
-    else:
-        result["Robo Total"] = "N/A"
-
-    # Responsabilidad Civil
-    rc_match = re.search(r'Responsabilidad Civil[:\s]*\$?\s*([0-9,]+\.?\d*)', text, re.IGNORECASE)
-    if not rc_match:
-        # Try to match pattern like "Responsabilidad Civil $ 2,000,000.00 POR EVENTO"
-        rc_match = re.search(r'Responsabilidad Civil[^\d$]*\$?\s*([0-9,]+\.?\d*)', text, re.IGNORECASE)
-    result["Responsabilidad Civil"] = f"${rc_match.group(1)}" if rc_match else "N/A"
-
-    # Gastos Medicos Ocupantes
-    gmo_match = re.search(r'Gastos Medicos Ocupantes[:\s]*\$?\s*([0-9,]+\.?\d*)', text, re.IGNORECASE)
-    result["Gastos Medicos Ocupantes"] = f"${gmo_match.group(1)}" if gmo_match else "N/A"
-
-    # Asistencia Legal
-    al_match = re.search(r'Gastos Legales[:\s]*(Amparada|No Amparada)', text, re.IGNORECASE)
-    result["Asistencia Legal"] = f"{al_match.group(1)}" if al_match else "N/A"
-
-    # Asistencia Viajes
-    av_match = re.search(r'Asistencia Vial[:\s]*(Amparada|No Amparada)', text, re.IGNORECASE)
-    result["Asistencia Viajes"] = f"{av_match.group(1)}" if av_match else "N/A"
-
-    # Accidente al conductor
-    ac_match = re.search(r'Muerte del Conductor X AA[:\s]*\$?([0-9,]+\.?\d*)', text, re.IGNORECASE)
-    result["Accidente al conductor"] = f"${ac_match.group(1)}" if ac_match else "N/A"
-
-    # Responsabilidad civil catastrofica
-    # Match "RC Complementaria Personas" followed by any non-digit, then a $ and the first amount (e.g. $ 2,000,000.00)
-    rcc_match = re.search(r'RC Complementaria Personas[^\d$]*\$?\s*([0-9]{1,3}(?:,[0-9]{3})*(?:\.\d{2})?)', text, re.IGNORECASE)
-    result["Responsabilidad civil catastrofica"] = f"${rcc_match.group(1)}" if rcc_match else "N/A"
-
-    # Desbielamiento por agua al motor: Not present in Qualitas
-    result["Desbielamiento por agua al motor"] = "N/A"
-
-    return result
-
-def parse_ana(text: str) -> Dict[str, str]:
-    """
-    Parse ANA Seguros PDF format.
-    
-    Args:
-        text: Full text content of the PDF
-        
-    Returns:
-        Dictionary with extracted insurance data
-    """
-    result = {"company": "ANA Seguros"}
-    result["vehicle_name"] = extract_vehicle(text)
-    
-    # Totals (standardized)
-    prima_total = _extract_amount_after(text, ['PRIMA TOTAL', 'TOTAL'])
-    prima_neta = _extract_amount_after(text, ['PRIMA NETA','Prima Neta'])
-    recargos = _extract_amount_after(text, ['Recargos'])
-    derechos = _extract_amount_after(text, ['Derechos de Póliza','Derechos de Poliza'])
-    fin = _compute_financials(prima_neta, prima_total, recargos, derechos)
-    result.update(fin)
-    
-    # Forma de Pago
-    fp_match = re.search(r'FORMA DE PAGO[:\s]*([A-Z\s]+)', text, re.IGNORECASE)
-    result["Forma de Pago"] = fp_match.group(1).strip() if fp_match else "N/A"
-    
-    dm_amount = _extract_amount_after(text, ['DAÑOS MATERIALES', 'SUMA ASEGURADA'])
-    dm_ded = re.search(r'DAÑOS\s+MATERIALES[\s\S]{0,120}?DEDUCIBLE[:\s]*([0-9]+\.?\d*)%', text, re.IGNORECASE)
-    if dm_amount and dm_ded:
-        result["Daños Materiales"] = f"${dm_amount} Deducible {dm_ded.group(1)}%"
-    elif dm_amount:
-        result["Daños Materiales"] = f"${dm_amount}"
-    else:
-        result["Daños Materiales"] = "N/A"
-    
-    rt_amount = _extract_amount_after(text, ['ROBO TOTAL', 'SUMA ASEGURADA'])
-    rt_ded = re.search(r'ROBO\s+TOTAL[\s\S]{0,120}?DEDUCIBLE[:\s]*([0-9]+\.?\d*)%', text, re.IGNORECASE)
-    if rt_amount and rt_ded:
-        result["Robo Total"] = f"${rt_amount} Deducible {rt_ded.group(1)}%"
-    elif rt_amount:
-        result["Robo Total"] = f"${rt_amount}"
-    else:
-        result["Robo Total"] = "N/A"
-    
-    # Responsabilidad Civil
-    rc_match = re.search(r'RESPONSABILIDAD CIVIL[:\s]*\$?([0-9,]+\.?\d*)', text, re.IGNORECASE)
-    result["Responsabilidad Civil"] = f"${rc_match.group(1)}" if rc_match else "N/A"
-    
-    # Gastos Medicos Ocupantes
-    gmo_match = re.search(r'GASTOS MEDICOS OCUPANTES[:\s]*\$?([0-9,]+\.?\d*)', text, re.IGNORECASE)
-    result["Gastos Medicos Ocupantes"] = f"${gmo_match.group(1)}" if gmo_match else "N/A"
-    
-    # Asistencia Legal
-    al_match = re.search(r'DEFENSA JURIDICA Y ASIST\. LEGAL[:\s]*\$?([0-9,]+\.?\d*)', text, re.IGNORECASE)
-    result["Asistencia Legal"] = f"${al_match.group(1)}" if al_match else "N/A"
-    
-    # Asistencia Viajes: Derived from "ANA ASISTENCIA"
-    result["Asistencia Viajes"] = "AMPARADA"
-    
-    # Accidente al conductor
-    ac_match = re.search(r'GASTOS POR MUERTE ACCIDENTAL[:\s]*\$?([0-9,]+\.?\d*)', text, re.IGNORECASE)
-    result["Accidente al conductor"] = f"${ac_match.group(1)}" if ac_match else "N/A"
-    
-    # Responsabilidad civil catastrofica
-    rcc_match = re.search(r'RC CATASTROFICA POR MUERTE[:\s]*\$?([0-9,]+\.?\d*)', text, re.IGNORECASE)
-    result["Responsabilidad civil catastrofica"] = f"${rcc_match.group(1)}" if rcc_match else "N/A"
-    
-    # Desbielamiento por agua al motor
-    dam_match = re.search(r'DESBIELAMIENTO POR AGUA[:\s]*\$?([0-9,]+\.?\d*)', text, re.IGNORECASE)
-    result["Desbielamiento por agua al motor"] = f"${dam_match.group(1)}" if dam_match else "N/A"
-    
-    return result
-
-def parse_atlas(text: str) -> Dict[str, str]:
-    """
-    Parse Seguros Atlas PDF format.
-    
-    Args:
-        text: Full text content of the PDF
-        
-    Returns:
-        Dictionary with extracted insurance data
-    """
-    result = {"company": "Seguros Atlas"}
-    result["vehicle_name"] = extract_vehicle(text)
-    
-    # Totals (standardized)
-    prima_total = _extract_amount_after(text, ['PRIMA TOTAL', 'TOTAL'])
-    prima_neta = _extract_amount_after(text, ['PRIMA NETA','Prima Neta'])
-    recargos = _extract_amount_after(text, ['Recargos'])
-    derechos = _extract_amount_after(text, ['Derechos de Póliza','Derechos de Poliza'])
-    fin = _compute_financials(prima_neta, prima_total, recargos, derechos)
-    result.update(fin)
-    
-    # Forma de Pago (fallback to CONTADO if not found)
-    fp_match = re.search(r'FORMA DE PAGO[:\s]*([A-Z\s]+)', text, re.IGNORECASE)
-    result["Forma de Pago"] = fp_match.group(1).strip() if fp_match else "CONTADO"
-    
-    dm_amount = _extract_amount_after(text, ['DAÑOS MATERIALES', 'Suma Asegurada', 'SUMA ASEGURADA'])
-    dm_ded = re.search(r'DAÑOS\s+MATERIALES[\s\S]{0,120}?%\s*DEDUCIBLE[:\s]*([0-9]+\.?\d*)%', text, re.IGNORECASE)
-    if dm_amount and dm_ded:
-        result["Daños Materiales"] = f"${dm_amount} Deducible {dm_ded.group(1)}%"
-    elif dm_amount:
-        result["Daños Materiales"] = f"${dm_amount}"
-    else:
-        result["Daños Materiales"] = "N/A"
-    
-    rt_amount = _extract_amount_after(text, ['ROBO TOTAL', 'Suma Asegurada', 'SUMA ASEGURADA'])
-    rt_ded = re.search(r'ROBO\s+TOTAL[\s\S]{0,120}?%\s*DEDUCIBLE[:\s]*([0-9]+\.?\d*)%', text, re.IGNORECASE)
-    if rt_amount and rt_ded:
-        result["Robo Total"] = f"${rt_amount} Deducible {rt_ded.group(1)}%"
-    elif rt_amount:
-        result["Robo Total"] = f"${rt_amount}"
-    else:
-        result["Robo Total"] = "N/A"
-    
-    # Responsabilidad Civil
-    rc_match = re.search(r'RESPONSABILIDAD CIVIL\s*(?:\(LUC\))?[:\s]*\$?([0-9,]+\.?\d*)', text, re.IGNORECASE)
-    result["Responsabilidad Civil"] = f"${rc_match.group(1)}" if rc_match else "N/A"
-    
-    # Gastos Medicos Ocupantes
-    gmo_match = re.search(r'GASTOS MEDICOS OCUPANTES\s*(?:\(LUC\))?[:\s]*\$?([0-9,]+\.?\d*)', text, re.IGNORECASE)
-    result["Gastos Medicos Ocupantes"] = f"${gmo_match.group(1)}" if gmo_match else "N/A"
-    
-    # Asistencia Legal
-    al_match = re.search(r'ASISTENCIA LEGAL[:\s]*\$?([0-9,]+\.?\d*)', text, re.IGNORECASE)
-    result["Asistencia Legal"] = f"${al_match.group(1)}" if al_match else "N/A"
-    
-    # Asistencia Viajes
-    av_match = re.search(r'ASISTENCIA EN VIAJES[:\s]*\$?([0-9,]+\.?\d*)', text, re.IGNORECASE)
-    result["Asistencia Viajes"] = f"${av_match.group(1)}" if av_match else "N/A"
-    
-    # Accidente al conductor
-    ac_match = re.search(r'ACCIDENTE AL CONDUCTOR[:\s]*\$?([0-9,]+\.?\d*)', text, re.IGNORECASE)
-    result["Accidente al conductor"] = f"${ac_match.group(1)}" if ac_match else "N/A"
-    
-    # Responsabilidad civil catastrofica
-    rcc_match = re.search(r'RESPONSABILIDAD CIVIL CATASTRÓFICA POR FALLECIMIENTO[:\s]*\$?([0-9,]+\.?\d*)', text, re.IGNORECASE)
-    result["Responsabilidad civil catastrofica"] = f"${rcc_match.group(1)}" if rcc_match else "N/A"
-    
-    # Desbielamiento por agua al motor: Not present in Atlas
-    result["Desbielamiento por agua al motor"] = "N/A"
-    
-    return result
+    # Legacy company-specific parsing removed in favor of ADE unified schema

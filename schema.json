@@ -1,0 +1,116 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Cotización de Seguro Atlas - Extracción de Campos Clave",
+  "description": "Esquema para extraer los campos más relevantes de una cotización de seguro automotriz en formato markdown, enfocado en tablas y campos tipo formulario.",
+  "type": "object",
+  "properties": {
+    "session_info": {
+      "title": "Información de Sesión",
+      "description": "Datos clave de la sesión de cotización.",
+      "type": "object",
+      "properties": {
+        "Fecha de Cotización": {
+          "title": "Serie",
+          "description": "Fecha de la cotización.",
+          "type": "string",
+          "format": "YYYY-MM-DD"
+        }
+      },
+      "required": [
+        "Fecha de Cotización"
+      ]
+    },
+    "vehicle_info": {
+      "title": "Información del Vehículo",
+      "description": "Datos principales del vehículo asegurado.",
+      "type": "object",
+      "properties": {
+        "vehiculo": {
+          "title": "Vehículo",
+          "description": "Descripción del vehículo.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "vehiculo"
+      ]
+    },
+    "coverages": {
+      "title": "Coberturas",
+      "description": "Daños materiales, Robo Total, Responsabilidad Civil, Gastos medicos, Asistencia juridica, Responsabilidad civil catastrofica",
+      "type": "array",
+      "items": {
+        "title": "Cobertura",
+        "description": "Información de una cobertura individual.",
+        "type": "object",
+        "properties": {
+          "nombre": {
+            "title": "Nombre de Cobertura",
+            "description": "Nombre de la cobertura.",
+            "type": "string"
+          },
+          "suma_asegurada": {
+            "title": "Suma Asegurada",
+            "description": "Monto asegurado para la cobertura.",
+            "type": "string"
+          },
+          "porcentaje_deducible": {
+            "title": "Porcentaje Deducible",
+            "description": "Porcentaje de deducible aplicado.",
+            "type": "number"
+          }
+        },
+        "required": [
+          "nombre",
+          "suma_asegurada",
+          "porcentaje_deducible"
+        ]
+      }
+    },
+    "summary": {
+      "title": "Resumen de Prima",
+      "description": "Resumen de los montos principales de la cotización.",
+      "type": "object",
+      "properties": {
+        "prima_neta": {
+          "title": "Prima Neta",
+          "description": "Monto total de la prima neta.",
+          "type": "number"
+        },
+        "recargos": {
+          "title": "Recargos",
+          "description": "Monto de recargos aplicados.",
+          "type": "number"
+        },
+        "derechos": {
+          "title": "Derechos",
+          "description": "Monto de derechos.",
+          "type": "number"
+        },
+        "iva": {
+          "title": "IVA",
+          "description": "Monto de IVA aplicado.",
+          "type": "number"
+        },
+        "prima_total": {
+          "title": "Prima Total",
+          "description": "Monto total de la prima.",
+          "type": "number"
+        }
+      },
+      "required": [
+        "prima_neta",
+        "recargos",
+        "derechos",
+        "iva",
+        "prima_total"
+      ]
+    }
+  },
+  "required": [
+    "session_info",
+    "vehicle_info",
+    "coverages",
+    "summary"
+  ]
+}

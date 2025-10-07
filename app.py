@@ -6,14 +6,14 @@ and generate a comparison table that can be exported as PDF.
 
 import os
 import io
-from flask import Flask, render_template, request, send_file, url_for
+from flask import Flask, render_template, request, send_file
 try:
     # Wrap WSGI Flask app so it can run under ASGI servers (uvicorn)
     from asgiref.wsgi import WsgiToAsgi  # type: ignore
 except Exception:  # asgiref may be missing locally
     WsgiToAsgi = None  # type: ignore
 from datetime import datetime
-from pdf_parser import parse_pdf
+from pdf_parser import parse_pdfs
 
 # WeasyPrint availability will be checked at runtime
 WEASYPRINT_AVAILABLE = None
@@ -64,26 +64,31 @@ def process_files():
     
     parsed_data = []
     errors = []
-    
-    # Process each uploaded file
+
+    # Collect PDF bytes for batch parse
+    contents: list[bytes] = []
+    names: list[str] = []
     for file in files:
         if file and file.filename.lower().endswith('.pdf'):
             try:
-                # Read PDF content
-                pdf_content = file.read()
-                
-                # Parse the PDF
-                result = parse_pdf(pdf_content)
-                
-                if result:
-                    parsed_data.append(result)
-                else:
-                    errors.append(f"Could not parse {file.filename}")
-                    
+                contents.append(file.read())
+                names.append(file.filename)
             except Exception as e:
-                errors.append(f"Error processing {file.filename}: {str(e)}")
+                errors.append(f"Error reading {file.filename}: {str(e)}")
         else:
             errors.append(f"Invalid file type: {file.filename}")
+
+    # Run batch parse
+    if contents:
+        try:
+            results = parse_pdfs(contents)
+            for name, res in zip(names, results):
+                if res:
+                    parsed_data.append(res)
+                else:
+                    errors.append(f"Could not parse {name}")
+        except Exception as e:
+            errors.append(f"Batch parsing error: {str(e)}")
     
     if not parsed_data:
         return render_template('index.html', error="No valid PDFs could be parsed")
@@ -165,8 +170,7 @@ def check_weasyprint_availability():
     global WEASYPRINT_AVAILABLE
     if WEASYPRINT_AVAILABLE is None:
         try:
-            from weasyprint import HTML, CSS
-            from weasyprint.text.fonts import FontConfiguration
+            __import__('weasyprint')
             WEASYPRINT_AVAILABLE = True
         except Exception as e:
             # On Windows, WeasyPrint raises OSError due to missing GTK/Pango libs.
@@ -186,8 +190,8 @@ def export_pdf_with_data(data_json):
     
     import json
     import base64
-    from weasyprint import HTML, CSS
-    from weasyprint.text.fonts import FontConfiguration
+    from weasyprint import HTML as _HTML, CSS as _CSS
+    from weasyprint.text.fonts import FontConfiguration as _FontConfiguration
     
     try:
         # Decode the base64 encoded JSON data
@@ -216,7 +220,8 @@ def export_pdf_with_data(data_json):
         parsed_data.sort(key=lambda x: x.get('company', ''))
         
         # Helper: build data URI for static images so WeasyPrint embeds them reliably
-        import base64, mimetypes
+        import base64
+        import mimetypes
         def _data_uri(static_filename: str) -> str:
             file_path = os.path.join(app.root_path, 'static', static_filename)
             mime = mimetypes.guess_type(file_path)[0] or 'image/png'
@@ -286,13 +291,13 @@ def export_pdf_with_data(data_json):
                                      vehicle_name=vehicle_name)
         
         # Configure fonts for WeasyPrint
-        font_config = FontConfiguration()
+        font_config = _FontConfiguration()
         
         # Create PDF with WeasyPrint
         pdf_buffer = io.BytesIO()
         
         # Additional CSS for PDF export
-        pdf_css = CSS(string='''
+        pdf_css = _CSS(string='''
             @page {
                 size: A4 portrait;
                 margin: 12mm;
@@ -389,7 +394,7 @@ def export_pdf_with_data(data_json):
                                      today_str=date_str,
                                      vehicle_name=vehicle_name)
 
-        HTML(string=html_content).write_pdf(pdf_buffer, stylesheets=[pdf_css], font_config=font_config)
+        _HTML(string=html_content).write_pdf(pdf_buffer, stylesheets=[pdf_css], font_config=font_config)
         
         pdf_buffer.seek(0)
         
