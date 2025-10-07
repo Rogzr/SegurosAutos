@@ -13,7 +13,8 @@ from typing import Dict, Optional, List
 
 def load_brands() -> List[str]:
     """Load brands from brands.json. Returns empty list if not present."""
-    import json, os
+    import json
+    import os
     try:
         path = os.path.join(os.path.dirname(__file__), 'brands.json')
         with open(path, 'r', encoding='utf-8') as f:
@@ -246,21 +247,14 @@ def parse_hdi(text: str) -> Dict[str, str]:
     dm_amount = _extract_amount_after(text, [
         'Daños Materiales', 'DAÑOS MATERIALES'
     ])
-    # Deducible DM
-    dm_ded = re.search(r'DAÑOS? MATERIALES[\s\S]{0,120}?DEDUCIBLE[:\s]*([0-9]+\.?\d*)%', text, re.IGNORECASE)
-    if dm_amount and dm_ded:
-        result["Daños Materiales"] = f"${dm_amount} Deducible {dm_ded.group(1)}%"
-    elif dm_amount:
+    if dm_amount:
         result["Daños Materiales"] = f"${dm_amount}"
     else:
         result["Daños Materiales"] = "N/A"
     
     # Robo Total amount and deductible
     rt_amount = _extract_amount_after(text, ['Robo Total', 'ROBO TOTAL','Limite de Responsabilidad'])
-    rt_ded = re.search(r"Robo Total.*?\s([\d,]+\.\d{2})", text, re.IGNORECASE) # search(r'ROBO TOTAL[\s\S]{0,120}?DEDUCIBLE[:\s]*([0-9]+\.?\d*)%', text, re.IGNORECASE)
-    if rt_amount and rt_ded:
-#        result["Robo Total"] = f"${rt_amount} Deducible {rt_ded.group(1)}%"
-#    elif rt_amount:
+    if rt_amount:
         result["Robo Total"] = f"${rt_amount}"
     else:
         result["Robo Total"] = "N/A"
@@ -319,19 +313,13 @@ def parse_qualitas(text: str) -> Dict[str, str]:
     result["Forma de Pago"] = "CONTADO"
 
     dm_amount = _extract_amount_after(text, ['Daños materiales', 'DAÑOS MATERIALES', 'SUMA ASEGURADA'])
-    dm_ded = re.search(r'DAÑOS?\s+MATERIALES[\s\S]{0,120}?DEDUCIBLE[:\s]*([0-9]+\.?\d*)%', text, re.IGNORECASE)
-    if dm_amount and dm_ded:
-        result["Daños Materiales"] = f"${dm_amount} Deducible {dm_ded.group(1)}%"
-    elif dm_amount:
+    if dm_amount:
         result["Daños Materiales"] = f"${dm_amount}"
     else:
         result["Daños Materiales"] = "N/A"
 
     rt_amount = _extract_amount_after(text, ['Robo total', 'ROBO TOTAL', 'SUMA ASEGURADA'])
-    rt_ded = re.search(r'ROBO\s+TOTAL[\s\S]{0,120}?DEDUCIBLE[:\s]*([0-9]+\.?\d*)%', text, re.IGNORECASE)
-    if rt_amount and rt_ded:
-        result["Robo Total"] = f"${rt_amount} Deducible {rt_ded.group(1)}%"
-    elif rt_amount:
+    if rt_amount:
         result["Robo Total"] = f"${rt_amount}"
     else:
         result["Robo Total"] = "N/A"
@@ -395,19 +383,13 @@ def parse_ana(text: str) -> Dict[str, str]:
     result["Forma de Pago"] = fp_match.group(1).strip() if fp_match else "N/A"
     
     dm_amount = _extract_amount_after(text, ['DAÑOS MATERIALES', 'SUMA ASEGURADA'])
-    dm_ded = re.search(r'DAÑOS\s+MATERIALES[\s\S]{0,120}?DEDUCIBLE[:\s]*([0-9]+\.?\d*)%', text, re.IGNORECASE)
-    if dm_amount and dm_ded:
-        result["Daños Materiales"] = f"${dm_amount} Deducible {dm_ded.group(1)}%"
-    elif dm_amount:
+    if dm_amount:
         result["Daños Materiales"] = f"${dm_amount}"
     else:
         result["Daños Materiales"] = "N/A"
     
     rt_amount = _extract_amount_after(text, ['ROBO TOTAL', 'SUMA ASEGURADA'])
-    rt_ded = re.search(r'ROBO\s+TOTAL[\s\S]{0,120}?DEDUCIBLE[:\s]*([0-9]+\.?\d*)%', text, re.IGNORECASE)
-    if rt_amount and rt_ded:
-        result["Robo Total"] = f"${rt_amount} Deducible {rt_ded.group(1)}%"
-    elif rt_amount:
+    if rt_amount:
         result["Robo Total"] = f"${rt_amount}"
     else:
         result["Robo Total"] = "N/A"
@@ -467,19 +449,13 @@ def parse_atlas(text: str) -> Dict[str, str]:
     result["Forma de Pago"] = fp_match.group(1).strip() if fp_match else "CONTADO"
     
     dm_amount = _extract_amount_after(text, ['DAÑOS MATERIALES', 'Suma Asegurada', 'SUMA ASEGURADA'])
-    dm_ded = re.search(r'DAÑOS\s+MATERIALES[\s\S]{0,120}?%\s*DEDUCIBLE[:\s]*([0-9]+\.?\d*)%', text, re.IGNORECASE)
-    if dm_amount and dm_ded:
-        result["Daños Materiales"] = f"${dm_amount} Deducible {dm_ded.group(1)}%"
-    elif dm_amount:
+    if dm_amount:
         result["Daños Materiales"] = f"${dm_amount}"
     else:
         result["Daños Materiales"] = "N/A"
     
     rt_amount = _extract_amount_after(text, ['ROBO TOTAL', 'Suma Asegurada', 'SUMA ASEGURADA'])
-    rt_ded = re.search(r'ROBO\s+TOTAL[\s\S]{0,120}?%\s*DEDUCIBLE[:\s]*([0-9]+\.?\d*)%', text, re.IGNORECASE)
-    if rt_amount and rt_ded:
-        result["Robo Total"] = f"${rt_amount} Deducible {rt_ded.group(1)}%"
-    elif rt_amount:
+    if rt_amount:
         result["Robo Total"] = f"${rt_amount}"
     else:
         result["Robo Total"] = "N/A"
