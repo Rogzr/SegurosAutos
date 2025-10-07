@@ -257,13 +257,14 @@ def parse_hdi(text: str) -> Dict[str, str]:
     
     # Robo Total amount and deductible
     rt_amount = _extract_amount_after(text, ['Robo Total', 'ROBO TOTAL','Limite de Responsabilidad'])
-    rt_ded = re.search(r'ROBO TOTAL[\s\S]{0,120}?DEDUCIBLE[:\s]*([0-9]+\.?\d*)%', text, re.IGNORECASE)
+    rt_ded = re.search(r"Robo Total.*?\s([\d,]+\.\d{2})", text, re.IGNORECASE) # search(r'ROBO TOTAL[\s\S]{0,120}?DEDUCIBLE[:\s]*([0-9]+\.?\d*)%', text, re.IGNORECASE)
     if rt_amount and rt_ded:
-        result["Robo Total"] = f"${rt_amount} Deducible {rt_ded.group(1)}%"
-    elif rt_amount:
+#        result["Robo Total"] = f"${rt_amount} Deducible {rt_ded.group(1)}%"
+#    elif rt_amount:
         result["Robo Total"] = f"${rt_amount}"
     else:
         result["Robo Total"] = "N/A"
+    
     
     # Responsabilidad Civil
     rc_match = re.search(r'Responsabilidad Civil (Límite Único y Combinado)[:\s]*([0-9,]+\.?\d*)', text, re.IGNORECASE)
@@ -496,9 +497,10 @@ def parse_atlas(text: str) -> Dict[str, str]:
     result["Asistencia Legal"] = f"${al_match.group(1)}" if al_match else "N/A"
     
     # Asistencia Viajes
-    av_match = re.search(r'ASISTENCIA EN VIAJES[:\s]*\$?([0-9,]+\.?\d*)', text, re.IGNORECASE)
-    result["Asistencia Viajes"] = f"${av_match.group(1)}" if av_match else "N/A"
-    
+    # av_match = re.search(r'ASISTENCIA EN VIAJES[:\s]*\$?([0-9,]+\.?\d*)', text, re.IGNORECASE)
+    #result["Asistencia Viajes"] = f"${av_match.group(1)}" if av_match else "N/A"
+    result["Asistencia Viajes"] = "AMPARADA"
+
     # Accidente al conductor
     ac_match = re.search(r'ACCIDENTE AL CONDUCTOR[:\s]*\$?([0-9,]+\.?\d*)', text, re.IGNORECASE)
     result["Accidente al conductor"] = f"${ac_match.group(1)}" if ac_match else "N/A"
