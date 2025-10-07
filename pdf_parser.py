@@ -121,7 +121,8 @@ def _ade_extract_unified(pdf_content: bytes) -> Optional[Dict[str, Any]]:
 
     headers = {"Authorization": f"Basic {api_key}"}
 
-    files = {"pdf": ("document.pdf", pdf_content, "application/pdf")}
+    # ADE expects either 'document' (file upload) or 'document_url'. Use file upload.
+    files = {"document": ("document.pdf", pdf_content, "application/pdf")}
     data = {"fields_schema": json.dumps(schema)}
 
     resp = requests.post(endpoint, headers=headers, files=files, data=data, timeout=60)
