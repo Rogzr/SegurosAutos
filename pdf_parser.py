@@ -30,20 +30,34 @@ BRANDS = load_brands()
 def extract_vehicle(text: str) -> str:
     """Best-effort vehicle descriptor extraction from PDF text."""
     upper = text.upper().replace('\n', ' ')
-    patterns: List[str] = []
-    if BRANDS:
-        brands_pattern = r'(?:' + '|'.join([b.replace('-', r'\-') for b in BRANDS]) + r')'
-        patterns.append(rf'{brands_pattern}\s+[A-Z0-9][A-Z0-9\- ]{{2,60}}')
-    # Generic fallbacks that don't depend on brand list
-    patterns.append(r'DESCRIPCION DEL VEHICULO ASEGURADO\s+([A-Z0-9 ,\-]+)')
-    patterns.append(r'VEH[ÍI]CULO\s*[:]*\s*([A-Z0-9 ,\-]{3,60})')
     candidate = ''
-    import re
-    for p in patterns:
-        m = re.search(p, upper)
-        if m:
-            candidate = m.group(0) if m.lastindex is None else m.group(1)
-            break
+    # 1) Brand-first strategy: find the brand and capture the model/trim words that follow
+    if BRANDS:
+        # Try longer brands first to avoid partial matches
+        for brand in sorted(BRANDS, key=len, reverse=True):
+            try:
+                b = brand.upper()
+                idx = upper.find(b)
+                if idx == -1:
+                    continue
+                window = upper[idx:idx + 160]  # capture a reasonable window after the brand
+                # Capture: BRAND + 2..80 chars containing letters/digits/space/-/./
+                m = re.search(rf'({re.escape(b)}\s+[A-Z0-9][A-Z0-9\-\./ ]{{2,80}})', window)
+                if m:
+                    candidate = m.group(1)
+                    break
+            except Exception:
+                continue
+    # 2) Generic fallbacks
+    if not candidate:
+        patterns: List[str] = []
+        patterns.append(r'DESCRIPCION DEL VEHICULO ASEGURADO\s+([A-Z0-9 ,\-]+)')
+        patterns.append(r'VEH[ÍI]CULO\s*[:]*\s*([A-Z0-9 ,\-]{3,60})')
+        for p in patterns:
+            m = re.search(p, upper)
+            if m:
+                candidate = m.group(0) if m.lastindex is None else m.group(1)
+                break
     if not candidate:
         return ''
     # Normalize
@@ -83,6 +97,36 @@ def _extract_amount_after(text: str, anchors: List[str], lookahead_chars: int = 
             m2 = re.search(r'\$?\s*([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]{2})?)', window)
             if m2:
                 return m2.group(1)
+        except Exception:
+            continue
+    return None
+
+def _extract_amount_below_or_after(text: str, anchors: List[str], lookahead_chars: int = 400) -> Optional[str]:
+    """Extract amount appearing after the label or on the next line below it.
+
+    - Searches for each anchor, then scans a following window for a currency token
+    - If not found inline, checks the next 1-2 lines for a currency token
+    """
+    import re
+    upper = text.upper()
+    money_re = re.compile(r'\$?\s*([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]{2})?)')
+    for a in anchors:
+        try:
+            m = re.search(a.upper(), upper)
+            if not m:
+                continue
+            start = m.end()
+            window = upper[start:start + lookahead_chars]
+            # inline first
+            m2 = money_re.search(window)
+            if m2:
+                return m2.group(1)
+            # then below on next lines
+            lines = window.split('\n')
+            for i in range(1, min(3, len(lines))):
+                mline = money_re.search(lines[i])
+                if mline:
+                    return mline.group(1)
         except Exception:
             continue
     return None
@@ -235,7 +279,7 @@ def parse_hdi(text: str) -> Dict[str, str]:
     # Totals (standardized)
     prima_total = _extract_amount_after(text, ['Total a Pagar', 'IMPORTE TOTAL', 'TOTAL A PAGAR', 'Prima Total', 'PRIMA TOTAL'])
     prima_neta = _extract_amount_after(text, ['PRIMA NETA','Prima Neta'])
-    recargos = _extract_amount_after(text, ['Recargos'])
+    recargos = _extract_amount_below_or_after(text, ['Recargo Pago Fraccionado', 'Recargo', 'Recargos'])
     derechos = _extract_amount_after(text, ['Derechos de Póliza','Derechos de Poliza','Derechos'])
     fin = _compute_financials(prima_neta, prima_total, recargos, derechos)
     result.update(fin)
@@ -282,9 +326,6 @@ def parse_hdi(text: str) -> Dict[str, str]:
     
     # Responsabilidad civil catastrofica
     rcc_match = re.search(r'Responsabilidad Civil en Exceso por Muerte de Personas[:\s]*([0-9,]+\.?\d*)', text, re.IGNORECASE)
-    if not rcc_match:
-        # Intentar una expresión regular más flexible si la anterior no encuentra nada
-        rcc_match = re.search(r'Responsabilidad Civil en Exceso.*?([0-9,]+\.?\d*)', text, re.IGNORECASE)
     result["Responsabilidad civil catastrofica"] = rcc_match.group(1) if rcc_match else "N/A"
     # Desbielamiento por agua al motor: Not present in HDI
     result["Desbielamiento por agua al motor"] = "N/A"

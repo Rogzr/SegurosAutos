@@ -95,8 +95,8 @@ def process_files():
     detected_vehicle = ''
     for row in parsed_data:
         # Ensure consistent defaults
-        row.setdefault('Asistencia Viajes', 'AMPARADA')
-        row['Atlas Cero Plus por PT de DM'] = 'AMPARADA'
+        row.setdefault('Asistencia Viajes', 'Amparada')
+        row['Atlas Cero Plus por PT de DM'] = 'Amparada'
         row['Accidente al conductor'] = '$100,000.00'
         # Hardcoded deductibles and limits based on example
         # These apply to all companies unless overridden later
@@ -113,7 +113,7 @@ def process_files():
 
         # Atlas-specific coverage present in the example
         if row.get('company') == 'Seguros Atlas':
-            row['Desbielamiento por agua al motor'] = 'AMPARADA'
+            row['Desbielamiento por agua al motor'] = 'Amparada'
         # Capture vehicle name if any parser provided it
         if not detected_vehicle and row.get('vehicle_name'):
             detected_vehicle = row.get('vehicle_name')
