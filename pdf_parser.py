@@ -472,40 +472,11 @@ def parse_hdi(text: str) -> Dict[str, str]:
     
     
     # Responsabilidad Civil
-    # rc_match = re.search(r'Responsabilidad Civil (Límite Único y Combinado)[:\s]*([0-9,]+\.?\d*)', text, re.IGNORECASE)
-    # result["Responsabilidad Civil"] = f"${rc_match.group(1)}" if rc_match else "N/A"
-    rc_amount = _extract_amount_after(
-        text,
-        [
-            'Responsabilidad Civil (Límite Único y Combinado)',
-            'RESPONSABILIDAD CIVIL (LÍMITE ÚNICO Y COMBINADO)',
-            'Responsabilidad Civil',
-            'RESPONSABILIDAD CIVIL',
-            'RC (LUC)'
-        ],
-        lookahead_chars=200,
-    )
-    if rc_amount:
-        result["Responsabilidad Civil"] = f"${rc_amount}"
-    else:
-        result["Responsabilidad Civil"] = "N/A"
-    
+    rc_match = re.search(r'Responsabilidad Civil (Límite Único y Combinado)[:\s]*([0-9,]+\.?\d*)', text, re.IGNORECASE)
+    result["Responsabilidad Civil"] = f"${rc_match.group(1)}" if rc_match else "N/A"
     # Gastos Medicos Ocupantes
-    # gmo_match = re.search(r'Gastos Médicos Ocupantes  (Límite Único Combinado)[:\s]*([0-9,]+\.?\d*)', text, re.IGNORECASE)
-    # result["Gastos Medicos Ocupantes"] = f"${gmo_match.group(1)}" if gmo_match else "N/A"
-    gmo_amount = _extract_amount_after(
-        text,
-        [
-            'Gastos Médicos Ocupantes  (Límite Único Combinado)',
-            'GASTOS MÉDICOS OCUPANTES',
-            'GASTOS MEDICOS OCUPANTES'
-        ],
-        lookahead_chars=200,
-    )
-    if gmo_amount:
-        result["Gastos Medicos Ocupantes"] = f"${gmo_amount}"
-    else:
-        result["Gastos Medicos Ocupantes"] = "N/A"
+    gmo_match = re.search(r'Gastos Médicos Ocupantes  (Límite Único Combinado)[:\s]*([0-9,]+\.?\d*)', text, re.IGNORECASE)
+    result["Gastos Medicos Ocupantes"] = f"${gmo_match.group(1)}" if gmo_match else "N/A"
     
     # Asistencia Legal
     al_match = re.search(r'Asistencia (Jur[ií]dica|Legal)[:\s]*(Amparada|No Amparada)', text, re.IGNORECASE)
