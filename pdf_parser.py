@@ -282,6 +282,9 @@ def parse_hdi(text: str) -> Dict[str, str]:
     
     # Responsabilidad civil catastrofica
     rcc_match = re.search(r'Responsabilidad Civil en Exceso por Muerte de Personas[:\s]*([0-9,]+\.?\d*)', text, re.IGNORECASE)
+    if not rcc_match:
+        # Intentar una expresión regular más flexible si la anterior no encuentra nada
+        rcc_match = re.search(r'Responsabilidad Civil en Exceso.*?([0-9,]+\.?\d*)', text, re.IGNORECASE)
     result["Responsabilidad civil catastrofica"] = rcc_match.group(1) if rcc_match else "N/A"
     # Desbielamiento por agua al motor: Not present in HDI
     result["Desbielamiento por agua al motor"] = "N/A"
@@ -407,7 +410,7 @@ def parse_ana(text: str) -> Dict[str, str]:
     result["Asistencia Legal"] = f"${al_match.group(1)}" if al_match else "N/A"
     
     # Asistencia Viajes: Derived from "ANA ASISTENCIA"
-    result["Asistencia Viajes"] = "AMPARADA"
+    result["Asistencia Viajes"] = "Amparada"
     
     # Accidente al conductor
     ac_match = re.search(r'GASTOS POR MUERTE ACCIDENTAL[:\s]*\$?([0-9,]+\.?\d*)', text, re.IGNORECASE)
@@ -475,7 +478,7 @@ def parse_atlas(text: str) -> Dict[str, str]:
     # Asistencia Viajes
     # av_match = re.search(r'ASISTENCIA EN VIAJES[:\s]*\$?([0-9,]+\.?\d*)', text, re.IGNORECASE)
     #result["Asistencia Viajes"] = f"${av_match.group(1)}" if av_match else "N/A"
-    result["Asistencia Viajes"] = "AMPARADA"
+    result["Asistencia Viajes"] = "Amparada"
 
     # Accidente al conductor
     ac_match = re.search(r'ACCIDENTE AL CONDUCTOR[:\s]*\$?([0-9,]+\.?\d*)', text, re.IGNORECASE)
