@@ -302,7 +302,7 @@ def parse_qualitas(text: str) -> Dict[str, str]:
     prima_total = _extract_amount_after(text, ['IMPORTE TOTAL', 'PRIMA TOTAL'])
     prima_neta = _extract_amount_after(text, ['PRIMA NETA', 'Prima Neta'])
     recargos = _extract_amount_after(text, ['Recargos'])
-    derechos = _extract_amount_after(text, ['Derechos de Póliza', 'Derechos de Poliza'])
+    derechos = _extract_amount_after(text, ['Derechos de Póliza', 'Derechos de Poliza', 'Gastos de Expedición','GTOS. EXPEDICION POL.'])
     fin = _compute_financials(prima_neta, prima_total, recargos, derechos)
     result.update(fin)
 
