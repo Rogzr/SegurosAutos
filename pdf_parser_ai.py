@@ -107,7 +107,7 @@ def get_company_schema(company: str) -> dict:
             },
             "Recargos": {
                 "type": "string",
-                "description": "Recargos or Recargos por Financiamiento amount"
+                "description": "Recargos, Recargos por Financiamiento, or TASA FIN.P.F. (Qualitas) amount"
             },
             "Derechos": {
                 "type": "string",
@@ -161,7 +161,7 @@ def get_company_schema(company: str) -> dict:
     if company == "ANA":
         base_schema["properties"]["Desbielamiento"] = {
             "type": "string",
-            "description": "Water damage to motor coverage. Field name: 'DESBIELAMIENTO POR AGUA' or 'DESBIELAMIENTO POR AGUA AL MOTOR'. Extract the amount value. Only present in ANA PDFs."
+            "description": "Water damage to motor coverage. Field name: 'DESBIELAMIENTO POR AGUA' or 'DESBIELAMIENTO POR AGUA AL MOTOR'. Extract status (AMPARADO/NO AMPARADO) or if not found return N/A. Only present in ANA PDFs."
         }
     
     return base_schema
@@ -227,7 +227,7 @@ def map_ana_data(extracted: dict) -> Dict[str, str]:
     result["Asistencia Legal"] = format_currency(extracted.get("Asistencia_Legal"))
     result["Asistencia Viajes"] = "Amparada"
     result["Responsabilidad civil catastrofica"] = format_currency(extracted.get("RC_Catastrofica"))
-    result["Desbielamiento por agua al motor"] = format_currency(extracted.get("Desbielamiento"))
+    result["Desbielamiento por agua al motor"] = format_currency(extracted.get("Desbielamiento", "N/A"))
     return result
 
 
