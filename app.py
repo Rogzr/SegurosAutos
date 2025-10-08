@@ -14,6 +14,7 @@ except Exception:  # asgiref may be missing locally
     WsgiToAsgi = None  # type: ignore
 from datetime import datetime
 from pdf_parser import parse_pdf
+from pdf_parser_ai import parse_pdf_ai
 
 # WeasyPrint availability will be checked at runtime
 WEASYPRINT_AVAILABLE = None
@@ -62,6 +63,9 @@ def process_files():
     if not files or all(file.filename == '' for file in files):
         return render_template('index.html', error="No files selected")
     
+    # Check which parser to use
+    use_ai_parser = request.form.get('use_ai_parser') == 'on'
+    
     parsed_data = []
     errors = []
     
@@ -72,8 +76,11 @@ def process_files():
                 # Read PDF content
                 pdf_content = file.read()
                 
-                # Parse the PDF
-                result = parse_pdf(pdf_content)
+                # Parse the PDF using selected parser
+                if use_ai_parser:
+                    result = parse_pdf_ai(pdf_content, file.filename)
+                else:
+                    result = parse_pdf(pdf_content)
                 
                 if result:
                     parsed_data.append(result)

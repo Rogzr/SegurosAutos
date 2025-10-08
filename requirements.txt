@@ -3,3 +3,4 @@ PyMuPDF
 WeasyPrint
 uvicorn
 asgiref
+requests

@@ -23,5 +23,3 @@ COPY . .
 # Run under uvicorn on the port provided by Railway ($PORT)
 ENV PYTHONUNBUFFERED=1
 CMD sh -c "uvicorn app:asgi_app --host 0.0.0.0 --port ${PORT:-8080}"
-
-
