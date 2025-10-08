@@ -6,13 +6,17 @@ Handles parsing of PDFs from four specific insurance companies:
 - ANA Seguros
 - Seguros Atlas
 
-OPTIMIZED VERSION: Uses single API call for both classification + extraction
+OPTIMIZED VERSION: Uses FREE regex for company ID, then single targeted API call
 """
 
 import os
 import json
 import requests
+import fitz  # PyMuPDF
 from typing import Dict, Optional
+
+# Import the free regex-based company identifier from the original parser
+from pdf_parser import identify_company
 
 # Get API key from environment
 LANDING_AI_API_KEY = os.getenv('LANDING_AI_API_KEY')
@@ -22,7 +26,7 @@ LANDING_AI_ENDPOINT = os.getenv('LANDING_AI_ENDPOINT', 'https://api.va.landing.a
 def parse_pdf_ai(pdf_content: bytes, filename: str = "document.pdf") -> Optional[Dict[str, str]]:
     """
     Main function to parse PDF content using Landing AI and extract insurance data.
-    Uses a SINGLE unified API call for both classification and extraction to save credits (50% reduction).
+    SUPER OPTIMIZED: Uses FREE regex for company ID, then 1 targeted API call.
     
     Args:
         pdf_content: Raw PDF file content as bytes
@@ -36,88 +40,32 @@ def parse_pdf_ai(pdf_content: bytes, filename: str = "document.pdf") -> Optional
         return None
     
     try:
-        # Single unified schema for classification + extraction (saves 50% of credits!)
-        unified_schema = {
-            "type": "object",
-            "properties": {
-                "company": {
-                    "type": "string",
-                    "enum": ["HDI", "Qualitas", "ANA", "Atlas"],
-                    "description": "The insurance company: HDI Seguros='HDI', Qualitas/Quálitas='Qualitas', ANA Seguros='ANA', Seguros Atlas='Atlas'"
-                },
-                "vehicle_name": {
-                    "type": "string",
-                    "description": "Full vehicle description including brand, model, and year (e.g., VOLKSWAGEN JETTA 2024)"
-                },
-                "Prima_Neta": {
-                    "type": "string",
-                    "description": "Prima Neta amount"
-                },
-                "Recargos": {
-                    "type": "string",
-                    "description": "Recargos or Recargos por Financiamiento amount"
-                },
-                "Derechos": {
-                    "type": "string",
-                    "description": "Derechos de Póliza or Gastos de Expedición amount"
-                },
-                "IVA": {
-                    "type": "string",
-                    "description": "IVA (tax) amount"
-                },
-                "Prima_Total": {
-                    "type": "string",
-                    "description": "Total a Pagar, Prima Total, or IMPORTE TOTAL amount"
-                },
-                "Forma_Pago": {
-                    "type": "string",
-                    "description": "FORMA DE PAGO (payment method)"
-                },
-                "Danos_Materiales": {
-                    "type": "string",
-                    "description": "Daños Materiales suma asegurada amount"
-                },
-                "Robo_Total": {
-                    "type": "string",
-                    "description": "Robo Total suma asegurada amount"
-                },
-                "Responsabilidad_Civil": {
-                    "type": "string",
-                    "description": "Responsabilidad Civil amount or limit"
-                },
-                "Gastos_Medicos": {
-                    "type": "string",
-                    "description": "Gastos Médicos Ocupantes amount"
-                },
-                "Asistencia_Legal": {
-                    "type": "string",
-                    "description": "Asistencia Legal, Asistencia Jurídica, Defensa Juridica, or Gastos Legales - can be amount or status (AMPARADA/AMPARADO)"
-                },
-                "Asistencia_Viajes": {
-                    "type": "string",
-                    "description": "Asistencia en Viajes or Asistencia Vial - status (AMPARADA/AMPARADO/NO AMPARADA)"
-                },
-                "RC_Catastrofica": {
-                    "type": "string",
-                    "description": "Responsabilidad Civil Catastrófica, RC en Exceso por Muerte, or RC Complementaria Personas amount"
-                },
-                "Desbielamiento": {
-                    "type": "string",
-                    "description": "Desbielamiento por Agua al Motor amount (mainly for ANA)"
-                }
-            },
-            "required": ["company", "vehicle_name", "Prima_Total"]
-        }
+        # Step 1: Use FREE regex-based company identification (instant, no credits!)
+        doc = fitz.open(stream=pdf_content, filetype="pdf")
+        full_text = ""
+        for page_num in range(len(doc)):
+            page = doc[page_num]
+            full_text += page.get_text()
+        doc.close()
         
-        # Single API call for both classification and extraction
-        extracted = call_extraction_api(pdf_content, filename, unified_schema)
+        # Use the proven regex from pdf_parser.py (FREE!)
+        company = identify_company(full_text)
+        
+        if not company:
+            print("Could not identify insurance company")
+            return None
+        
+        print(f"Regex identified company: {company} (0 credits used)")
+        
+        # Step 2: Create company-specific schema (smaller = fewer tokens = fewer credits!)
+        schema = get_company_schema(company)
+        
+        # Step 3: Single targeted API call
+        extracted = call_extraction_api(pdf_content, filename, schema)
         
         if not extracted:
             print("Could not extract data using AI")
             return None
-        
-        company = extracted.get("company")
-        print(f"AI identified company: {company}")
         
         # Map to standard format based on company
         result = {}
@@ -140,6 +88,85 @@ def parse_pdf_ai(pdf_content: bytes, filename: str = "document.pdf") -> Optional
         return None
 
 
+def get_company_schema(company: str) -> dict:
+    """
+    Get company-specific extraction schema (smaller schemas = fewer credits).
+    Each company has field names optimized for their specific PDF format.
+    """
+    # Base schema shared by all companies
+    base_schema = {
+        "type": "object",
+        "properties": {
+            "vehicle_name": {
+                "type": "string",
+                "description": "Full vehicle description including brand, model, and year"
+            },
+            "Prima_Neta": {
+                "type": "string",
+                "description": "Prima Neta amount"
+            },
+            "Recargos": {
+                "type": "string",
+                "description": "Recargos or Recargos por Financiamiento amount"
+            },
+            "Derechos": {
+                "type": "string",
+                "description": "Derechos de Póliza or Gastos de Expedición amount"
+            },
+            "IVA": {
+                "type": "string",
+                "description": "IVA amount"
+            },
+            "Prima_Total": {
+                "type": "string",
+                "description": "Total a Pagar or Prima Total or IMPORTE TOTAL amount"
+            },
+            "Forma_Pago": {
+                "type": "string",
+                "description": "FORMA DE PAGO"
+            },
+            "Danos_Materiales": {
+                "type": "string",
+                "description": "Daños Materiales suma asegurada"
+            },
+            "Robo_Total": {
+                "type": "string",
+                "description": "Robo Total suma asegurada"
+            },
+            "Responsabilidad_Civil": {
+                "type": "string",
+                "description": "Responsabilidad Civil amount"
+            },
+            "Gastos_Medicos": {
+                "type": "string",
+                "description": "Gastos Médicos Ocupantes amount"
+            },
+            "Asistencia_Legal": {
+                "type": "string",
+                "description": "Asistencia Legal, Jurídica, or Gastos Legales - amount or status (AMPARADA/AMPARADO)"
+            },
+            "Asistencia_Viajes": {
+                "type": "string",
+                "description": "Asistencia en Viajes or Vial - status (AMPARADA/AMPARADO)"
+            },
+            "RC_Catastrofica": {
+                "type": "string",
+                "description": "RC Catastrófica, RC Complementaria, or RC en Exceso por Muerte amount"
+            }
+        },
+        "required": ["vehicle_name", "Prima_Total"]
+    }
+    
+    # Add company-specific fields
+    if company == "ANA":
+        base_schema["properties"]["Desbielamiento"] = {
+            "type": "string",
+            "description": "Desbielamiento por Agua al Motor amount"
+        }
+    
+    return base_schema
+
+
 def map_hdi_data(extracted: dict) -> Dict[str, str]:
     """Map unified extracted data to HDI Seguros format."""
     result = {"company": "HDI Seguros"}
@@ -149,13 +176,13 @@ def map_hdi_data(extracted: dict) -> Dict[str, str]:
     result["Derechos de Póliza"] = format_currency(extracted.get("Derechos"))
     result["IVA"] = format_currency(extracted.get("IVA"))
     result["Prima Total"] = format_currency(extracted.get("Prima_Total"))
-    result["Forma de Pago"] = extracted.get("Forma_Pago", "CONTADO")
+    result["Forma de Pago"] = "CONTADO"
     result["Daños Materiales"] = format_currency(extracted.get("Danos_Materiales"))
     result["Robo Total"] = format_currency(extracted.get("Robo_Total"))
     result["Responsabilidad Civil"] = format_currency(extracted.get("Responsabilidad_Civil"))
     result["Gastos Medicos Ocupantes"] = format_currency(extracted.get("Gastos_Medicos"))
-    result["Asistencia Legal"] = format_currency(extracted.get("Asistencia_Legal", "N/A"))
-    result["Asistencia Viajes"] = format_currency(extracted.get("Asistencia_Viajes", "N/A"))
+    result["Asistencia Legal"] = extracted.get("Asistencia_Legal", "N/A")
+    result["Asistencia Viajes"] = extracted.get("Asistencia_Viajes", "N/A")
     result["Responsabilidad civil catastrofica"] = format_currency(extracted.get("RC_Catastrofica"))
     result["Desbielamiento por agua al motor"] = "N/A"
     return result
@@ -175,10 +202,11 @@ def map_qualitas_data(extracted: dict) -> Dict[str, str]:
     result["Robo Total"] = format_currency(extracted.get("Robo_Total"))
     result["Responsabilidad Civil"] = format_currency(extracted.get("Responsabilidad_Civil"))
     result["Gastos Medicos Ocupantes"] = format_currency(extracted.get("Gastos_Medicos"))
-    result["Asistencia Legal"] = format_currency(extracted.get("Asistencia_Legal", "N/A"))
-    result["Asistencia Viajes"] = format_currency(extracted.get("Asistencia_Viajes", "N/A"))
-    result["Responsabilidad civil catastrofica"] = format_currency(extracted.get("RC_Catastrofica"))
+    result["Asistencia Legal"] = format_currency(extracted.get("Gastos_Legales", "N/A"))
+    result["Asistencia Viajes"] = format_currency(extracted.get("Asistencia_Vial", "N/A"))
+    result["Responsabilidad civil catastrofica"] = format_currency(extracted.get("RC_Complementaria"))
     result["Desbielamiento por agua al motor"] = "N/A"
+    
     return result
 
 
@@ -196,7 +224,7 @@ def map_ana_data(extracted: dict) -> Dict[str, str]:
     result["Robo Total"] = format_currency(extracted.get("Robo_Total"))
     result["Responsabilidad Civil"] = format_currency(extracted.get("Responsabilidad_Civil"))
     result["Gastos Medicos Ocupantes"] = format_currency(extracted.get("Gastos_Medicos"))
-    result["Asistencia Legal"] = format_currency(extracted.get("Asistencia_Legal"))
+    result["Asistencia Legal"] = format_currency(extracted.get("Defensa_Juridica"))
     result["Asistencia Viajes"] = "Amparada"
     result["Responsabilidad civil catastrofica"] = format_currency(extracted.get("RC_Catastrofica"))
     result["Desbielamiento por agua al motor"] = format_currency(extracted.get("Desbielamiento"))
