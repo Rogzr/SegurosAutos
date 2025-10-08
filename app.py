@@ -119,8 +119,8 @@ def process_files():
             row['Deducible - RT'] = '5%'
 
         # Atlas-specific coverage present in the example
-        if row.get('company') == 'Seguros Atlas':
-            row['Desbielamiento por agua al motor'] = 'Amparada'
+#        if row.get('company') == 'Seguros Atlas':
+#            row['Desbielamiento por agua al motor'] = 'Amparada'
         # Capture vehicle name if any parser provided it
         if not detected_vehicle and row.get('vehicle_name'):
             detected_vehicle = row.get('vehicle_name')
@@ -393,7 +393,7 @@ def export_pdf_with_data(data_json):
         
         return send_file(pdf_buffer, 
                        as_attachment=True, 
-                       download_name='comparison.pdf',
+                       download_name='Comparativo_SegurosAuto_Strategos.pdf',
                        mimetype='application/pdf')
         
     except Exception as e:

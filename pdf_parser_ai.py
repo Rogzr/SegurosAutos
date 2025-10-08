@@ -527,11 +527,11 @@ def format_currency(value: Optional[str]) -> str:
     try:
         float(check_str)
     except ValueError:
-        # Not a number - it's text like "AMPARADA", "Amparada", etc
-        # Return with proper capitalization
-        if value_str.upper() == "AMPARADA":
+        # Not a number - it's text like "AMPARADA", "AMPARADO", "Amparada", etc
+        # Return with proper capitalization (use feminine form for consistency)
+        if value_str.upper() in ["AMPARADA", "AMPARADO"]:
             return "Amparada"
-        elif value_str.upper() == "NO AMPARADA":
+        elif value_str.upper() in ["NO AMPARADA", "NO AMPARADO"]:
             return "No Amparada"
         return value_str.capitalize()
     
