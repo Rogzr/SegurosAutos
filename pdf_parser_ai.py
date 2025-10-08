@@ -503,13 +503,13 @@ def call_extraction_api(pdf_content: bytes, filename: str, schema: dict) -> Opti
 
 def format_currency(value: Optional[str]) -> str:
     """
-    Format extracted currency value with $ prefix.
+    Format extracted currency value with $ prefix and proper comma separators.
     
     Args:
-        value: Extracted value (may already have $ or be plain number)
+        value: Extracted value (may already have $, be a plain number, or be text like "AMPARADA")
         
     Returns:
-        Formatted currency string or "N/A" if invalid
+        Formatted currency string, text value (for non-numeric), or "N/A" if invalid
     """
     if not value:
         return "N/A"
@@ -519,10 +519,34 @@ def format_currency(value: Optional[str]) -> str:
     if not value_str or value_str.upper() == "N/A":
         return "N/A"
     
-    # If already has $, return as is
-    if value_str.startswith("$"):
-        return value_str
+    # Check if this is a text value like "AMPARADA", "Amparada", etc (not a number)
+    # Remove $ and commas to check if it's numeric
+    check_str = value_str.replace("$", "").replace(",", "").replace(" ", "").strip()
     
-    # Otherwise add $
-    return f"${value_str}"
+    # If after removing currency symbols it's not a number, return as-is (capitalize properly)
+    try:
+        float(check_str)
+    except ValueError:
+        # Not a number - it's text like "AMPARADA", "Amparada", etc
+        # Return with proper capitalization
+        if value_str.upper() == "AMPARADA":
+            return "Amparada"
+        elif value_str.upper() == "NO AMPARADA":
+            return "No Amparada"
+        return value_str.capitalize()
+    
+    # It's a number - format it properly with commas
+    try:
+        # Remove existing $ and commas
+        num_str = value_str.replace("$", "").replace(",", "").replace(" ", "").strip()
+        num_value = float(num_str)
+        
+        # Format with commas and 2 decimal places
+        formatted = f"{num_value:,.2f}"
+        return f"${formatted}"
+    except Exception:
+        # If formatting fails, return original with $ if it doesn't have it
+        if value_str.startswith("$"):
+            return value_str
+        return f"${value_str}"
 

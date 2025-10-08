@@ -52,6 +52,14 @@ header p {
     max-height: 50px;
     margin-top: 20px;
 }
+
+/* Larger logo for landing page */
+.logo-landing {
+    max-width: 350px;
+    max-height: 120px;
+    display: block;
+    margin: 20px auto 30px auto;
+}
 .meta { display:flex; align-items:flex-start; gap: 18px; }
 .vehiculo { line-height: 1.2; }
 .vehiculo-label { color:#0b4a6a; font-weight:600; }
