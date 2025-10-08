@@ -143,15 +143,15 @@ def get_company_schema(company: str) -> dict:
             },
             "Asistencia_Legal": {
                 "type": "string",
-                "description": "Asistencia Legal, Jurídica, or Gastos Legales - amount or status (AMPARADA/AMPARADO)"
+                "description": "Legal assistance coverage. Field names vary by company: 'DEFENSA JURIDICA Y ASIST. LEGAL' (ANA - amount), 'Gastos Legales' (Qualitas - status AMPARADA/NO AMPARADA), 'ASISTENCIA LEGAL' (Atlas - amount), 'Asistencia Jurídica' or 'Asistencia Legal' (HDI - status Amparada/No Amparada). Extract the value (amount or status)."
             },
             "Asistencia_Viajes": {
                 "type": "string",
-                "description": "Asistencia en Viajes or Vial - status (AMPARADA/AMPARADO)"
+                "description": "Travel assistance coverage. Field names vary: 'ANA ASISTENCIA' (ANA), 'Asistencia Vial' (Qualitas - status AMPARADA/NO AMPARADA), 'ASISTENCIA EN VIAJES' (Atlas), 'Asistencia en viajes' (HDI - status Amparada/No Amparada). Extract the value (status or if not found, infer from context)."
             },
             "RC_Catastrofica": {
                 "type": "string",
-                "description": "RC Catastrófica, RC Complementaria, or RC en Exceso por Muerte amount"
+                "description": "Catastrophic civil liability coverage. Field names vary: 'RC CATASTROFICA POR MUERTE' (ANA), 'RC Complementaria Personas' (Qualitas), 'RESPONSABILIDAD CIVIL CATASTRÓFICA POR FALLECIMIENTO' (Atlas), 'Responsabilidad Civil en Exceso por Muerte de Personas' (HDI). Extract the amount value."
             }
         },
         "required": ["vehicle_name", "Prima_Total"]
@@ -161,7 +161,7 @@ def get_company_schema(company: str) -> dict:
     if company == "ANA":
         base_schema["properties"]["Desbielamiento"] = {
             "type": "string",
-            "description": "Desbielamiento por Agua al Motor amount"
+            "description": "Water damage to motor coverage. Field name: 'DESBIELAMIENTO POR AGUA' or 'DESBIELAMIENTO POR AGUA AL MOTOR'. Extract the amount value. Only present in ANA PDFs."
         }
     
     return base_schema
@@ -181,8 +181,8 @@ def map_hdi_data(extracted: dict) -> Dict[str, str]:
     result["Robo Total"] = format_currency(extracted.get("Robo_Total"))
     result["Responsabilidad Civil"] = format_currency(extracted.get("Responsabilidad_Civil"))
     result["Gastos Medicos Ocupantes"] = format_currency(extracted.get("Gastos_Medicos"))
-    result["Asistencia Legal"] = extracted.get("Asistencia_Legal", "N/A")
-    result["Asistencia Viajes"] = extracted.get("Asistencia_Viajes", "N/A")
+    result["Asistencia Legal"] = format_currency(extracted.get("Asistencia_Legal", "N/A"))
+    result["Asistencia Viajes"] = format_currency(extracted.get("Asistencia_Viajes", "N/A"))
     result["Responsabilidad civil catastrofica"] = format_currency(extracted.get("RC_Catastrofica"))
     result["Desbielamiento por agua al motor"] = "N/A"
     return result
@@ -202,9 +202,9 @@ def map_qualitas_data(extracted: dict) -> Dict[str, str]:
     result["Robo Total"] = format_currency(extracted.get("Robo_Total"))
     result["Responsabilidad Civil"] = format_currency(extracted.get("Responsabilidad_Civil"))
     result["Gastos Medicos Ocupantes"] = format_currency(extracted.get("Gastos_Medicos"))
-    result["Asistencia Legal"] = format_currency(extracted.get("Gastos_Legales", "N/A"))
-    result["Asistencia Viajes"] = format_currency(extracted.get("Asistencia_Vial", "N/A"))
-    result["Responsabilidad civil catastrofica"] = format_currency(extracted.get("RC_Complementaria"))
+    result["Asistencia Legal"] = format_currency(extracted.get("Asistencia_Legal", "N/A"))
+    result["Asistencia Viajes"] = format_currency(extracted.get("Asistencia_Viajes", "N/A"))
+    result["Responsabilidad civil catastrofica"] = format_currency(extracted.get("RC_Catastrofica"))
     result["Desbielamiento por agua al motor"] = "N/A"
     
     return result
@@ -224,7 +224,7 @@ def map_ana_data(extracted: dict) -> Dict[str, str]:
     result["Robo Total"] = format_currency(extracted.get("Robo_Total"))
     result["Responsabilidad Civil"] = format_currency(extracted.get("Responsabilidad_Civil"))
     result["Gastos Medicos Ocupantes"] = format_currency(extracted.get("Gastos_Medicos"))
-    result["Asistencia Legal"] = format_currency(extracted.get("Defensa_Juridica"))
+    result["Asistencia Legal"] = format_currency(extracted.get("Asistencia_Legal"))
     result["Asistencia Viajes"] = "Amparada"
     result["Responsabilidad civil catastrofica"] = format_currency(extracted.get("RC_Catastrofica"))
     result["Desbielamiento por agua al motor"] = format_currency(extracted.get("Desbielamiento"))

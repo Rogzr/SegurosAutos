@@ -59,15 +59,40 @@
             </div>
         </main>
         
+        <!-- Loading notification -->
+        <div id="loadingNotification" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); z-index: 9999; align-items: center; justify-content: center;">
+            <div style="background: white; padding: 40px 60px; border-radius: 12px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.3); max-width: 500px;">
+                <div style="margin-bottom: 20px;">
+                    <div class="spinner" style="border: 4px solid #f3f3f3; border-top: 4px solid #0b4a6a; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto;"></div>
+                </div>
+                <h2 style="color: #0b4a6a; margin-bottom: 10px; font-size: 1.5rem;">Procesando cotizaciones...</h2>
+                <p style="color: #5a6c7d; margin-bottom: 5px; font-size: 1rem;" id="loadingMessage">Analizando documentos</p>
+                <p style="color: #7f8c8d; font-size: 0.9rem;" id="loadingSubtext">Esto puede tomar unos momentos</p>
+            </div>
+        </div>
+        
         <footer style="text-align: center;">
             <p>&copy; 2025 Strategos Diseño Patrimonial</p>
         </footer>
     </div>
     
+    <style>
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+    
     <script>
         // File input enhancement
         const fileInput = document.getElementById('files');
         const fileInputText = document.querySelector('.file-input-text');
+        const uploadForm = document.querySelector('.upload-form');
+        const loadingNotification = document.getElementById('loadingNotification');
+        const loadingMessage = document.getElementById('loadingMessage');
+        const loadingSubtext = document.getElementById('loadingSubtext');
+        const submitBtn = document.querySelector('.submit-btn');
+        const useAiCheckbox = document.getElementById('use_ai_parser');
         
         fileInput.addEventListener('change', function() {
             const files = this.files;
@@ -79,6 +104,31 @@
                 }
             } else {
                 fileInputText.textContent = 'Seleccionar archivos PDF';
+            }
+        });
+        
+        // Show loading notification on form submit
+        uploadForm.addEventListener('submit', function(e) {
+            const files = fileInput.files;
+            const useAI = useAiCheckbox.checked;
+            
+            if (files.length > 0) {
+                // Show loading notification
+                loadingNotification.style.display = 'flex';
+                
+                // Update message based on parser type and file count
+                if (useAI) {
+                    loadingMessage.textContent = `Analizando ${files.length} documento${files.length > 1 ? 's' : ''} con IA...`;
+                    loadingSubtext.textContent = 'Usando inteligencia artificial para mayor precisión';
+                } else {
+                    loadingMessage.textContent = `Procesando ${files.length} documento${files.length > 1 ? 's' : ''}...`;
+                    loadingSubtext.textContent = 'Extrayendo datos de las cotizaciones';
+                }
+                
+                // Disable submit button
+                submitBtn.disabled = true;
+                submitBtn.style.opacity = '0.6';
+                submitBtn.style.cursor = 'not-allowed';
             }
         });
     </script>
