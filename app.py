@@ -356,9 +356,9 @@ def export_pdf_with_data(data_json):
             }
             .meta .vehiculo { font-weight: 600; color: #0b4a6a; line-height: 1.2; }
             .meta .vehiculo .vehiculo-name { margin-top: 2px; font-weight: 700; color: #163d52; }
-            th.company-header-cell { text-align: center; }
+            th.company-header-cell { text-align: center; padding: 12px 10px; }
             .company-header-inner { display:flex; align-items:center; justify-content:center; height: 100%; width: 100%; }
-            .company-header-inner img { height: 24px; object-fit: contain; margin: 4px auto; display:block; }
+            .company-header-inner img { height: 45px; width: 100%; object-fit: contain; margin: 0 auto; display:block; }
             /* Center values */
             td.field-value { text-align: center; }
         ''', font_config=font_config)
